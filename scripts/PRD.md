@@ -10,7 +10,6 @@ The application targets several key user groups:
 - Academic researchers (PhD students, postdocs, professors) seeking new research directions
 - Industry R&D professionals looking to explore innovative approaches
 - Interdisciplinary researchers navigating unfamiliar literature
-- Research institutions optimizing resource allocation across projects
 
 ResearchAIde's value proposition is threefold:
 1. **Time Efficiency**: Reduce the research planning process from weeks to hours
@@ -35,7 +34,7 @@ By simulating the collaborative dynamics of academic research planning through s
 
 ### 2. Customizable LLM Integration
 
-**What it does**: Allows users to select which Large Language Model(s) to use for powering the agents, with support for multiple providers (OpenAI, Google, Anthropic, local models via Ollama).
+**What it does**: Allows users to select which Large Language Model(s) to use for powering the agents, with support for multiple providers (Google, OpenAI, Anthropic).
 
 **Why it's important**: Different LLMs have varying strengths, cost structures, and availability. Giving users choice ensures flexibility, privacy options, and adaptation to evolving LLM capabilities.
 
@@ -44,7 +43,6 @@ By simulating the collaborative dynamics of academic research planning through s
 - System configures agents with selected models
 - Optional: Different models can be assigned to different agent roles
 - LLM API Manager abstracts provider differences behind unified interface
-- Local model support enables offline/private operation
 
 ### 3. Arxiv Integration and Paper Processing Pipeline
 
@@ -54,11 +52,11 @@ By simulating the collaborative dynamics of academic research planning through s
 
 **How it works**:
 - PhD Agent formulates optimized Arxiv search queries from user input
-- System retrieves paper metadata (title, authors, abstract, etc.)
+- PhD Ahent retrieves paper metadata (title, authors, abstract, etc.) via tool call.
 - PhD Agent analyzes abstracts to identify most relevant papers
 - User reviews and modifies the shortlist
 - System downloads PDFs of selected papers
-- Multi-method text extraction processes PDFs (PyPDF2, PDFMiner, optional OCR)
+- Multi-method text extraction processes PDFs (PyPDF2, PDFMiner)
 - Content is structured, chunked, and prepared for vector storage
 
 ### 4. ChromaDB Vector Database Integration
@@ -71,7 +69,7 @@ By simulating the collaborative dynamics of academic research planning through s
 - Extracted text is chunked into optimal segments
 - Embeddings are generated for each text chunk
 - Chunks and embeddings are stored in ChromaDB collections
-- PhD Agent performs semantic searches to identify research gaps
+- PhD Agent performs semantic searches to identify research gaps via tool call.
 - System analyzes result patterns to detect underexplored areas
 - Vector similarities help assess novelty of proposed directions
 
@@ -87,6 +85,7 @@ By simulating the collaborative dynamics of academic research planning through s
 - PostDoc Agent assesses novelty through comparison with existing literature
 - PostDoc Agent evaluates feasibility considering technical requirements, resources, and challenges
 - Each direction receives structured scores and detailed assessments
+- Createing a novelity and feasibility matrix (e.g high novelity - high feasibility, high novelity - medium feasibility, etc.)
 - System provides specific improvement suggestions for each direction
 
 ### 6. Iterative Refinement Process
@@ -118,38 +117,6 @@ By simulating the collaborative dynamics of academic research planning through s
 
 ## User Experience
 
-### User Personas
-
-#### 1. Early-Career Researcher: Dr. Maya Chen
-
-**Background**: Recently completed PhD in computational biology, starting a postdoc position.  
-**Goals**: Establish independent research identity, identify novel directions for fellowship applications, efficiently navigate literature outside core expertise.  
-**Challenges**: Limited time, pressure to produce original work, competing with established researchers.  
-**Technical Comfort**: High; comfortable with specialized tools and programming.
-
-**Scenario**:
-Maya is preparing a fellowship application that requires a novel research proposal. She has expertise in protein folding simulations but wants to explore connections to drug discovery. She uses ResearchAIde to efficiently identify promising research directions that bridge these areas, leveraging the system to compensate for her limited background in pharmaceutical research.
-
-#### 2. Established Academic: Professor James Washington
-
-**Background**: Tenured professor in computer science with 15+ years of experience.  
-**Goals**: Identify new research directions for grant proposals, find projects for PhD students, stay current with rapidly evolving field.  
-**Challenges**: Limited time due to teaching and administrative duties, need to continuously innovate in competitive field.  
-**Technical Comfort**: Moderate; values efficiency and reliability over cutting-edge features.
-
-**Scenario**:
-Professor Washington leads a lab focused on natural language processing. He needs to prepare a major grant proposal exploring the application of NLP to climate science - an area outside his core expertise. He uses ResearchAIde to quickly map the landscape of existing research, identify gaps where NLP techniques could make significant contributions, and generate well-justified research directions for his proposal.
-
-#### 3. Industry Researcher: Dr. Sophia Rodriguez
-
-**Background**: Senior researcher at a pharmaceutical company with 8 years of industry experience.  
-**Goals**: Identify unexplored approaches to specific therapeutic targets, stay ahead of competitors, optimize R&D resource allocation.  
-**Challenges**: Information overload, pressure for commercial applications, balancing novelty with practical feasibility.  
-**Technical Comfort**: Moderate to high; familiar with research tools but prioritizes results over process.
-
-**Scenario**:
-Sophia's team is investigating new approaches to target a specific protein implicated in neurodegenerative diseases. They need to identify research directions that competitors might have overlooked. Sophia uses ResearchAIde to process hundreds of papers, identify patterns and gaps in current approaches, and generate research directions with strong feasibility assessments to inform her company's R&D strategy.
-
 ### Key User Flows
 
 #### 1. Research Session Initialization Flow
@@ -164,8 +131,8 @@ Sophia's team is investigating new approaches to target a specific protein impli
 
 #### 2. Paper Shortlist Review Flow
 
-1. System presents user with shortlist of relevant papers selected by the PhD Agent
-2. User reviews paper cards with titles, authors, abstracts, and relevance explanations
+1. System presents user with (full list and also) shortlist of relevant papers selected by the PhD Agent
+2. User reviews paper cards with titles, authors, abstracts
 3. User can remove irrelevant papers by selecting and clicking "Remove Selected"
 4. User can add papers by clicking "Add Paper" and entering Arxiv ID/URL
 5. User can filter and sort the paper list using controls
@@ -201,16 +168,13 @@ The application will provide clear visualizations of the research process, inclu
 The system will provide continuous feedback to keep users informed:
 - Real-time status updates during long-running operations
 - Clear indication of current workflow stage
-- Estimated time remaining for processing steps
 - Detailed error messages with recovery options
 
 #### 4. Accessibility Considerations
 
 The interface will be designed for accessibility following WCAG 2.1 AA standards:
 - Appropriate color contrast for all text and UI elements
-- Keyboard navigation support throughout the application
 - Screen reader compatibility with proper ARIA attributes
-- Responsive design for different screen sizes and devices
 
 #### 5. User Control and Flexibility
 
@@ -228,14 +192,13 @@ The interface will balance automation with user control:
 
 **Components**:
 - React-based single-page application
-- Responsive UI components for different screen sizes
 - Progress visualization components
 - Paper management interface
 - Report viewer with navigation and export options
 
 **Technologies**:
 - React.js framework
-- CSS modules or Tailwind CSS for styling
+- Tailwind CSS for styling
 - React Context API or Redux for state management
 - Fetch API for backend communication
 
@@ -264,7 +227,7 @@ The interface will balance automation with user control:
 - Caching and rate limiting mechanisms
 
 **Technologies**:
-- Custom Python orchestration framework
+- Custom Python orchestration framework or LangGraph
 - State machine implementation
 - Asynchronous task management
 
@@ -278,7 +241,7 @@ The interface will balance automation with user control:
 - Response parsing and validation
 
 **Technologies**:
-- Python agent framework
+- Pydantic AI framework
 - Provider-specific LLM integrations
 - Prompt engineering and templating
 - Structured output parsing
@@ -296,7 +259,6 @@ The interface will balance automation with user control:
 **Technologies**:
 - Arxiv API client
 - PyPDF2, PDFMiner for text extraction
-- Optional Tesseract OCR integration
 - Custom text processing utilities
 - ChromaDB client and management
 
@@ -351,7 +313,6 @@ class PaperMetadata(BaseModel):
     categories: Optional[List[str]]
     journal_ref: Optional[str]
     relevance_score: Optional[float]
-    relevance_explanation: Optional[str]
 ```
 
 **ResearchDirection**:
@@ -418,10 +379,9 @@ Collection: "research_{session_id}"
 **Purpose**: Connect to various LLM providers for agent intelligence
 
 **Supported Providers**:
-- OpenAI (GPT-4, etc.)
 - Google (Gemini)
+- OpenAI (GPT-4, etc.)
 - Anthropic (Claude)
-- Ollama (local models)
 
 **Implementation Details**:
 - Unified API interface with provider-specific adapters
@@ -459,13 +419,13 @@ Collection: "research_{session_id}"
 #### 1. Development Environment
 
 **Python Environment**:
-- Python 3.8+ with virtual environment
+- Python 3.10+ with virtual environment
 - Required packages installed via requirements.txt
 - Environment variables for API keys and configuration
 
 **Frontend Environment**:
 - Node.js 14+ for React development
-- NPM or Yarn package manager
+- NPM package manager
 - Build tools for frontend compilation
 
 **Local Development Setup**:
@@ -486,35 +446,13 @@ mkdir -p data/papers
 mkdir -p data/uploads
 ```
 
-#### 2. Production Environment
-
-**Server Requirements**:
-- 4+ CPU cores
-- 16GB+ RAM
-- 100GB+ SSD storage
-- Linux-based OS recommended
-
-**Containerization**:
-- Docker for application deployment
-- Docker Compose for service orchestration
-
-**Networking**:
-- HTTPS for secure client-server communication
-- WebSocket support for real-time updates
-- Proper CORS configuration for API access
-
-**Scaling Considerations**:
-- Horizontal scaling for API servers
-- Vertical scaling for ChromaDB instances
-- Load balancing for multiple instances
-
 ## Development Roadmap
 
 ### Phase 1: Foundation and Core Search Functionality
 
 **Scope**:
 - Basic application architecture
-- LLM integration with single provider (OpenAI)
+- LLM integration with single provider (Google Gemini 2.0 flash lite)
 - Arxiv search and paper retrieval
 - Simple PDF text extraction
 - Basic research topic input
@@ -575,7 +513,6 @@ mkdir -p data/uploads
 2. **Enhance PDF Processing**
    - Implement multi-method text extraction
    - Add document structure identification
-   - Develop OCR fallback for problematic PDFs
    - Create text cleaning and normalization services
 
 3. **Develop Analysis Capabilities**
@@ -632,9 +569,8 @@ mkdir -p data/uploads
    - Add refinement history tracking
 
 5. **Add LLM Provider Support**
-   - Implement Google Gemini integration
+   - Implement OpenAI GPT integration
    - Add Anthropic Claude support
-   - Create Ollama adapter for local models
    - Develop provider selection interface
 
 **Success Criteria**:
@@ -729,7 +665,6 @@ mkdir -p data/uploads
    - Basic report generation
 
 3. **Deployment Infrastructure**
-   - Docker containerization
    - Environment configuration
    - Basic monitoring and logging
 
@@ -864,7 +799,6 @@ mkdir -p data/uploads
 - Create clear, guided user flows with explicit next steps
 - Provide contextual help and explanations
 - Develop comprehensive onboarding experience
-- Test with representative users early and often
 
 ### Resource Constraints
 
@@ -874,7 +808,6 @@ mkdir -p data/uploads
 
 **Mitigation Strategies**:
 - Implement token usage monitoring and optimization
-- Support local models through Ollama integration
 - Create caching mechanisms for common operations
 - Optimize prompts for token efficiency
 - Implement usage limits and throttling when needed
