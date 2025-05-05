@@ -32,4 +32,4 @@ tasks/
 frontend/node_modules/
 
 # Backend Python virtual environment
-backend/venv/ 
+backend/.venv/ 
