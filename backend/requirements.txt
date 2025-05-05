@@ -1,0 +1,4 @@
+# Initial Python dependencies for the backend
+fastapi
+uvicorn[standard]
+# Add other backend dependencies here
