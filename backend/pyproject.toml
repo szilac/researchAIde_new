@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "researchaide-backend"
+version = "0.1.0"
+description = "Backend for the ResearchAIde application."
+authors = [
+  { name="Your Name", email="your.email@example.com" },
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License", # Assuming MIT based on LICENSE file
+    "Operating System :: OS Independent",
+    "Framework :: FastAPI",
+]
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0", # Includes uvloop, httptools etc.
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "google-generativeai>=0.8.0",
+    "tenacity>=9.0.0",
+    "pytest>=8.0.0", # Include pytest here for consistency
+    "pytest-asyncio>=0.20.0", # For async tests
+    "pytest-mock>=3.0.0", # For mocking
+    "httpx>=0.28.0", # Often needed for async HTTP requests in tests/clients
+    # Add other direct dependencies as needed
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-mock",
+    "ruff >= 0.1.0", # Add ruff
+    "black >= 24.0.0", # Add black
+    # Add other dev tools like linters (ruff), formatters (black) here
+]
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "." # Add the project root (backend directory) to the Python path for pytest
+]
+asyncio_mode = "auto" # Required for pytest-asyncio
+testpaths = [
+    "tests",
+]
+
+# Add other tool configurations like ruff, mypy, black etc. here later
+[tool.ruff]
+# Select the rules you want to enable (e.g., E, F, W for pyflakes/pycodestyle)
+# See https://docs.astral.sh/ruff/rules/ for all rules
+select = ["E", "F", "W", "I", "UP"]
+ignore = []
+
+# Allow unused variables when underscore-prefixed.
+# dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+# Assume Python 3.10
+target-version = "py310"
+
+[tool.ruff.format]
+# Use black formatting options if preferred
+# quote-style = "double"
+# indent-style = "space"
+# skip-magic-trailing-comma = false
+# line-ending = "auto"
+
+[tool.black]
+line-length = 110
+target-version = ["py310"] 
