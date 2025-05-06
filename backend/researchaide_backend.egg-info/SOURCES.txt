@@ -9,6 +9,8 @@ app/api/v1/api.py
 app/api/v1/endpoints/__init__.py
 app/api/v1/endpoints/health.py
 app/api/v1/endpoints/llm.py
+app/api/v1/endpoints/papers.py
+app/api/v1/endpoints/pdf.py
 app/api/v1/endpoints/sessions.py
 app/middleware/__init__.py
 app/middleware/session_middleware.py
@@ -16,6 +18,8 @@ app/models/__init__.py
 app/models/llm_config.py
 app/models/session.py
 app/services/__init__.py
+app/services/arxiv_service.py
+app/services/pdf_processor.py
 app/services/session_storage.py
 app/services/llm/base_provider.py
 app/services/llm/google_provider.py

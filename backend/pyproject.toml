@@ -27,6 +27,10 @@ dependencies = [
     "pytest-asyncio>=0.20.0", # For async tests
     "pytest-mock>=3.0.0", # For mocking
     "httpx>=0.28.0", # Often needed for async HTTP requests in tests/clients
+    "pydantic-settings",
+    "chromadb",
+    "sentence-transformers", # Added for local embeddings
+    "langchain-text-splitters", # Added for robust text splitting
     # Add other direct dependencies as needed
 ]
 

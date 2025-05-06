@@ -1,26 +1,44 @@
 from dotenv import load_dotenv
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables from .env file before anything else
 load_dotenv()
 
-from fastapi import FastAPI
-
 # Import API routers
-from app.api.v1.endpoints import llm as llm_router # Adjusted import path
+# from app.api.v1.endpoints import items, users, login, papers # Assuming papers might exist
+from app.api.v1.endpoints import papers 
+from app.api.v1.endpoints import pdf as pdf_router # Added pdf router
+from app.config import settings
 # from .api.v1 import other_router # Example for future routers
 
 app = FastAPI(
-    title="ResearchAIde Backend",
+    title=settings.PROJECT_NAME,
     description="API for ResearchAIde features.",
-    version="0.1.0"
+    version="0.1.0",
+    openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-@app.get("/")
+# Set all CORS enabled origins
+if settings.BACKEND_CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+@app.get("/", tags=["Root"])
 async def read_root():
-    return {"message": "Welcome to ResearchAIde API"}
+    return {"message": "Welcome to the ResearchAIde API"}
 
 # Include API routers
-app.include_router(llm_router.router, prefix="/api/v1/llm", tags=["LLM"])
+# app.include_router(login.router, tags=["login"])
+# app.include_router(users.router, prefix=settings.API_V1_STR, tags=["users"])
+# app.include_router(items.router, prefix=settings.API_V1_STR, tags=["items"])
+app.include_router(papers.router, prefix=settings.API_V1_STR, tags=["papers"]) # Assuming papers router
+app.include_router(pdf_router.router, prefix=f"{settings.API_V1_STR}/pdf", tags=["PDF Processing"]) # Added PDF router
 # app.include_router(other_router.router, prefix="/api/v1/other", tags=["Other"]) # Example
 
 # Add other app configurations, middleware, event handlers etc. below
