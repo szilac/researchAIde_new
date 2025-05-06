@@ -1,107 +1,140 @@
 """
 Prompt Manager
 
-Provides functionality to load, manage, and format prompts for LLM interaction.
+Provides functionality to load, manage, and format prompts for LLM interaction using Jinja2.
 """
 
-import string
-from typing import Dict, Any
+import os
+import logging
+from pathlib import Path
+from typing import Dict, Any, Optional
 
-class PromptTemplate:
-    """Represents a single prompt template."""
-    def __init__(self, template_string: str):
-        # Basic validation to ensure it's a valid template string
-        try:
-            self.template = string.Template(template_string)
-        except ValueError as e:
-            raise ValueError(f"Invalid template string provided: {e}")
+import jinja2
 
-    def format(self, **kwargs) -> str:
-        """
-        Formats the template using the provided keyword arguments.
-
-        Args:
-            **kwargs: Variables to substitute into the template.
-
-        Returns:
-            The formatted prompt string.
-        
-        Raises:
-            KeyError: If a placeholder in the template is missing from kwargs.
-        """
-        try:
-            return self.template.substitute(**kwargs)
-        except KeyError as e:
-            print(f"Missing variable '{e}' for prompt template.")
-            # Re-raise or handle as appropriate (e.g., return partially formatted string?)
-            raise
-        except TypeError as e:
-            # Catches issues like trying to substitute non-string values if template isn't prepared for it
-            print(f"Type error during template formatting: {e}")
-            raise
+logger = logging.getLogger(__name__)
 
 class PromptManager:
     """
-    Manages a collection of prompt templates.
-    
-    For now, templates are added directly. Future versions could load from files (YAML, JSON).
+    Manages a collection of Jinja2 prompt templates.
+    Loads templates from a specified directory.
     """
-    def __init__(self):
-        self._templates: Dict[str, PromptTemplate] = {}
-
-    def add_template(self, name: str, template_string: str):
+    def __init__(self, template_dir: Optional[str] = None):
         """
-        Adds a new prompt template to the manager.
+        Initializes the PromptManager.
 
         Args:
-            name: A unique name to identify the template.
-            template_string: The prompt template string (using $variable syntax).
+            template_dir: Optional path to the directory containing .j2 template files.
+                          If provided, templates will be loaded automatically.
+        """
+        self._templates: Dict[str, jinja2.Template] = {}
+        self.template_env = jinja2.Environment(loader=jinja2.FileSystemLoader('./'), # Base loader, directory changes in load method
+                                               autoescape=False, # Disable autoescaping for LLM prompts
+                                               trim_blocks=True, 
+                                               lstrip_blocks=True)
+        
+        if template_dir:
+            self.load_templates_from_directory(template_dir)
+
+    def _generate_template_name(self, file_path: Path, base_dir: Path) -> str:
+        """Generates a structured template name based on relative path.
+           e.g., /path/to/templates/phd/query.j2 -> phd_query
+        """
+        relative_path = file_path.relative_to(base_dir)
+        # Remove suffix and replace path separators with underscores
+        name_parts = list(relative_path.parts[:-1]) + [relative_path.stem]
+        return "_".join(name_parts).replace('-', '_')
+        
+    def load_templates_from_directory(self, directory_path: str):
+        """
+        Loads all Jinja2 templates (*.j2) from the specified directory and its subdirectories.
+        Template names are generated based on their relative path and filename.
+        
+        Args:
+            directory_path: The path to the directory containing templates.
         
         Raises:
-            ValueError: If the template name already exists or the template string is invalid.
+            FileNotFoundError: If the directory_path does not exist.
+            jinja2.TemplateSyntaxError: If a template file has syntax errors.
         """
-        if name in self._templates:
-            raise ValueError(f"Template '{name}' already exists.")
-        try:
-            self._templates[name] = PromptTemplate(template_string)
-            print(f"Prompt template '{name}' added successfully.")
-        except ValueError as e:
-             # Propagate error from PromptTemplate constructor
-             raise ValueError(f"Failed to add template '{name}': {e}")
+        base_dir = Path(directory_path)
+        if not base_dir.is_dir():
+            raise FileNotFoundError(f"Template directory not found: {directory_path}")
+            
+        # Update the environment loader to the specified directory
+        self.template_env.loader = jinja2.FileSystemLoader(str(base_dir))
 
-    def get_template(self, name: str) -> PromptTemplate:
+        logger.info(f"Loading prompt templates from: {base_dir.resolve()}")
+        
+        template_files = list(base_dir.rglob('*.j2')) # Recursively find all .j2 files
+        
+        if not template_files:
+            logger.warning(f"No *.j2 template files found in {directory_path}")
+            return
+
+        for file_path in template_files:
+            relative_file_path = file_path.relative_to(base_dir)
+            template_name = self._generate_template_name(file_path, base_dir)
+            
+            if template_name in self._templates:
+                logger.warning(f"Template name conflict: '{template_name}' from {file_path} already loaded. Skipping.")
+                continue
+                
+            try:
+                # Use environment to load templates correctly respecting the loader path
+                template = self.template_env.get_template(str(relative_file_path))
+                self._templates[template_name] = template
+                logger.debug(f"Loaded template '{template_name}' from {relative_file_path}")
+            except jinja2.TemplateSyntaxError as e:
+                logger.error(f"Syntax error in template {file_path}: {e}")
+                # Decide whether to raise, or just log and continue
+                # raise # Option: re-raise to halt loading on error
+            except Exception as e:
+                logger.error(f"Error loading template {file_path}: {e}")
+                # raise # Option: re-raise
+                
+        logger.info(f"Finished loading templates. Total loaded: {len(self._templates)}")
+
+    def get_template(self, name: str) -> jinja2.Template:
         """
-        Retrieves a specific prompt template by name.
+        Retrieves a specific Jinja2 template by its generated name.
 
         Args:
-            name: The name of the template to retrieve.
+            name: The generated name of the template (e.g., 'phd_query_formulation').
 
         Returns:
-            The PromptTemplate object.
+            The jinja2.Template object.
 
         Raises:
             KeyError: If the template name does not exist.
         """
         if name not in self._templates:
-            raise KeyError(f"Prompt template '{name}' not found.")
+            raise KeyError(f"Prompt template '{name}' not found. Available: {list(self._templates.keys())}")
         return self._templates[name]
 
     def format_prompt(self, name: str, **kwargs) -> str:
         """
-        Retrieves a template by name and formats it with the given variables.
+        Retrieves a template by name and renders it with the given variables.
 
         Args:
             name: The name of the template.
             **kwargs: Variables to substitute into the template.
 
         Returns:
-            The formatted prompt string.
+            The rendered prompt string.
             
         Raises:
-            KeyError: If the template name does not exist or formatting fails due to missing variables.
+            KeyError: If the template name does not exist.
+            jinja2.UndefinedError: If a variable in the template is not provided in kwargs.
         """
         template = self.get_template(name) # Raises KeyError if not found
-        return template.format(**kwargs) # Raises KeyError if variables missing
+        try:
+            return template.render(**kwargs)
+        except jinja2.UndefinedError as e:
+            logger.error(f"Missing variable for template '{name}': {e}")
+            raise # Re-raise the specific Jinja2 error
+        except Exception as e:
+            logger.error(f"Error rendering template '{name}': {e}")
+            raise
 
 # Example Usage:
 # if __name__ == "__main__":

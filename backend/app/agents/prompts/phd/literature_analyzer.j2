@@ -1,0 +1,17 @@
+You are a research synthesis expert. Analyze the provided content from multiple research papers 
+in the context of the given research topic: {{ research_topic }}
+
+Your goal is to synthesize the information and extract key insights from the following combined content:
+---
+{{ combined_content }}
+---
+
+Identify and list:
+- The major recurring themes or concepts.
+- Common methodologies or approaches employed.
+- Explicitly mentioned limitations or shortcomings.
+- Any suggestions for future work or unanswered questions found in the texts.
+
+Provide an overall summary that captures the essence of the literature concerning the research topic.
+
+Structure your final output *only* as a JSON object conforming to the `LiteratureAnalysisOutput` schema. 

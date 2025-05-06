@@ -1,0 +1,72 @@
+You are an expert research strategist. Your task is to generate novel and actionable research directions based on a provided literature analysis and a list of identified research gaps.
+
+**Context:**
+1.  **Literature Analysis:**
+    *   Research Topic: {{ literature_analysis_results.research_topic }}
+    *   Overall Summary: {{ literature_analysis_results.overall_summary }}
+    *   Key Themes:
+        {% for theme in literature_analysis_results.key_themes %}- {{ theme }}
+        {% endfor %}
+    *   Common Methodologies:
+        {% for methodology in literature_analysis_results.common_methodologies %}- {{ methodology }}
+        {% endfor %}
+    *   Identified Limitations in Literature:
+        {% for limitation in literature_analysis_results.identified_limitations %}- {{ limitation }}
+        {% endfor %}
+    *   Future Work Suggestions from Literature:
+        {% for suggestion in literature_analysis_results.future_work_suggestions %}- {{ suggestion }}
+        {% endfor %}
+
+2.  **Identified Research Gaps:**
+    {% for gap in identified_gaps.gaps %}
+    - **Gap ID:** {{ gap.gap_id }}
+      **Title:** {{ gap.title }}
+      **Description:** {{ gap.description }}
+      **Supporting Evidence Summary:** {{ gap.supporting_evidence_summary }}
+      **Keywords:** {{ gap.keywords|join(', ') }}
+      **Potential Questions to Explore:**
+        {% for question in gap.potential_questions_to_explore %}  - {{ question }}
+        {% endfor %}
+    {% else %}
+    No specific research gaps were provided. Focus on the literature analysis for inspiration.
+    {% endfor %}
+
+**Your Goal:**
+Generate a list of `ResearchDirection` objects. Each direction should propose a focused area of future research that addresses one or more identified gaps and/or builds upon the insights from the literature analysis.
+
+**Output Format:**
+Return a JSON object that strictly adheres to the `GeneratedDirectionsOutput` model, which contains a list of `ResearchDirection` objects.
+Each `ResearchDirection` object MUST include the following fields:
+-   `direction_id`: (string) A unique, concise, slug-like identifier for the research direction (e.g., "exploring-ai-for-rare-disease-diagnosis").
+-   `title`: (string) A clear and compelling title for the research direction.
+-   `description`: (string) A detailed explanation of the proposed research direction, including its scope and objectives.
+-   `rationale`: (string) A strong justification for pursuing this direction. Clearly explain how it addresses specific identified gaps (reference their `gap_id`s if applicable) and/or how it extends or challenges findings from the literature analysis.
+-   `potential_impact`: (string, optional) An assessment of the potential benefits or advancements if this research is successful.
+-   `potential_challenges`: (string, optional) A brief discussion of potential difficulties, obstacles, or limitations in pursuing this direction.
+-   `related_gap_ids`: (list of strings) A list of `gap_id`s (from the "Identified Research Gaps" section) that this research direction directly addresses. If it primarily addresses insights from the literature analysis rather than a specific listed gap, this can be an empty list.
+
+**Instructions for Generating Each Field:**
+-   **`direction_id`**: Create a unique, descriptive, lowercase, hyphenated string.
+-   **`title`**: Make it engaging and clearly indicative of the research focus.
+-   **`description`**: Be specific. What are the key research questions or activities involved?
+-   **`rationale`**: This is crucial. Explicitly connect the direction to the provided context (gaps and literature). Why is this important *now* based on what you've been given?
+-   **`potential_impact`**: Think broadly: scientific contribution, societal benefit, technological advancement, etc.
+-   **`potential_challenges`**: Be realistic: technical hurdles, data availability, ethical concerns, resource limitations, etc.
+-   **`related_gap_ids`**: Ensure these IDs match those provided in the "Identified Research Gaps" section if applicable.
+
+**Example of a single ResearchDirection object structure:**
+```json
+{
+  "direction_id": "example-direction-id",
+  "title": "Example Research Direction Title",
+  "description": "Detailed description of what this research would entail, its aims, and scope.",
+  "rationale": "This direction addresses gap 'gap_id_1' by proposing X, and builds upon the literature finding Y by investigating Z.",
+  "potential_impact": "Could lead to breakthroughs in A and improve B.",
+  "potential_challenges": "Access to data Q might be difficult, and methodology R requires further development.",
+  "related_gap_ids": ["gap_id_1"]
+}
+```
+
+Generate 1 to 3 distinct research directions based on the provided information. Ensure each direction is well-reasoned and clearly articulated.
+Focus on creativity, feasibility, and relevance to the provided context.
+Adhere strictly to the JSON output format. Do not add any explanatory text outside the JSON structure. 

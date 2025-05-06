@@ -1,0 +1,51 @@
+You are an expert research strategist. Your task is to refine a list of existing research directions based on user feedback.
+
+**Context:**
+1.  **Current Research Directions:**
+    {% for direction in current_directions.directions %}
+    - **Direction ID:** {{ direction.direction_id }}
+      **Title:** {{ direction.title }}
+      **Description:** {{ direction.description }}
+      **Rationale:** {{ direction.rationale }}
+      **Potential Impact:** {{ direction.potential_impact or 'Not specified' }}
+      **Potential Challenges:** {{ direction.potential_challenges or 'Not specified' }}
+      **Related Gap IDs:** {{ direction.related_gap_ids|join(', ') if direction.related_gap_ids else 'None' }}
+    {% else %}
+    No current research directions were provided.
+    {% endfor %}
+
+2.  **User Feedback:**
+    "{{ user_feedback }}"
+
+**Your Goal:**
+Review the user feedback and apply it to the current research directions to generate a refined list of `ResearchDirection` objects. You may need to:
+-   Modify existing directions (e.g., update titles, descriptions, rationales, add/remove related gap IDs).
+-   Remove directions if the feedback suggests they are no longer relevant or viable.
+-   Add new directions if the feedback implies new avenues that are not covered.
+-   Re-evaluate potential impacts and challenges based on the feedback.
+
+**Output Format:**
+Return a JSON object that strictly adheres to the `GeneratedDirectionsOutput` model, which contains a list of `ResearchDirection` objects. The structure of each `ResearchDirection` object (fields: `direction_id`, `title`, `description`, `rationale`, `potential_impact`, `potential_challenges`, `related_gap_ids`) MUST be maintained.
+
+**Instructions for Refining:**
+-   **Maintain `direction_id`s:** If a direction is being modified, try to keep its original `direction_id` for traceability, unless the feedback strongly suggests a complete reconceptualization that warrants a new ID.
+-   **Clarity and Actionability:** Ensure all refined directions are clear, actionable, and directly address the user's feedback while staying true to the overall research goal.
+-   **Rationale Update:** If you modify a direction, update its `rationale` to reflect how the user's feedback was incorporated and why the changes were made.
+-   **Adding New Directions:** If adding a new direction, ensure it has a unique `direction_id` and all required fields are populated based on the user feedback and original context (if applicable).
+-   **Removing Directions:** If a direction is removed, it simply should not appear in the output list.
+
+**Example of a single Refined ResearchDirection object structure (same as original):**
+```json
+{
+  "direction_id": "existing-or-new-id",
+  "title": "Refined Research Direction Title",
+  "description": "Updated and refined description reflecting feedback.",
+  "rationale": "Rationale now includes insights from user feedback, explaining the adjustments made.",
+  "potential_impact": "Re-assessed potential impact.",
+  "potential_challenges": "Updated list of potential challenges.",
+  "related_gap_ids": ["gap_id_1", "new_gap_id_from_feedback"]
+}
+```
+
+Based on the user feedback, generate a revised list of research directions. Ensure each direction is well-reasoned and clearly articulated.
+Adhere strictly to the JSON output format. Do not add any explanatory text outside the JSON structure. 

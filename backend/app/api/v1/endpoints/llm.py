@@ -58,7 +58,7 @@ class ModelInfo(BaseModel):
 async def get_llm_provider(provider_name: str = "google", model_name: Optional[str] = None) -> LLMProvider:
     """FastAPI dependency to get an initialized LLM provider."""
     # TODO: Replace with a more robust config loading mechanism
-    default_model = model_name or "gemini-1.5-flash-001" # Or load from central config
+    default_model = model_name or "gemini-1.5-flash-latest" # Or load from central config
     try:
         config = LLMConfig(model_name=default_model) # API key loaded from env by dotenv in main.py
         provider = LLMManager.get_provider(config, provider_name=provider_name)
