@@ -12,6 +12,8 @@ try:
         FormulatedQueriesOutput,
     )
     from backend.app.services.llm.prompt_manager import PromptManager
+    from langchain_core.messages import AIMessage
+
 except ImportError:
     from app.agents.phd_agent import (
         PhDAgent,
@@ -97,6 +99,33 @@ async def test_formulate_search_queries_live(phd_agent_deps):
     except Exception as e:
         pytest.fail(f"PhDAgent.formulate_search_queries raised an exception: {e}")
     
+    print("--- Test Finished --- \n")
+
+# --- Mocked Tests ---
+
+def test_phd_agent_process_simple_response(phd_agent_deps, mock_simple_ai_response):
+    """Tests a hypothetical _process_llm_response method with a mocked simple AIMessage."""
+    print("\n--- Running test_phd_agent_process_simple_response ---")
+    # 1. Setup
+    agent = PhDAgent(dependencies=phd_agent_deps, llm_model_name="mock_model") # Using a mock model name
+
+    # Hypothetical method on PhDAgent that processes an AIMessage
+    # We'll assume it just returns the content string for this example.
+    def _mock_process_llm_response(response: AIMessage) -> str:
+        return response.content
+
+    # Monkeypatch this hypothetical method onto the agent instance for this test
+    agent._process_llm_response = _mock_process_llm_response
+
+    # 2. Execute
+    # mock_simple_ai_response is provided by the fixture from conftest.py
+    processed_content = agent._process_llm_response(mock_simple_ai_response)
+
+    # 3. Assertions
+    assert isinstance(processed_content, str)
+    assert processed_content == "This is a default mock AI response."
+    print(f"Processed Content: {processed_content}")
+    print("Assertion checks passed.")
     print("--- Test Finished --- \n")
 
 # TODO: Add tests for other methods (assess_paper_relevance, analyze_literature, identify_research_gaps)

@@ -18,7 +18,6 @@ retry_strategy = retry(
     retry=(retry_if_exception_type(arxiv.HTTPError) | retry_if_exception_type(ConnectionError) | retry_if_exception_type(TimeoutError))
 )
 
-
 class ArxivService:
     def __init__(self):
         # Initialization, if any
