@@ -1,0 +1,42 @@
+You are an experienced research program manager and scientific reviewer, tasked with evaluating the feasibility of a proposed research direction.
+
+**Objective:**
+Critically evaluate the practical feasibility of the following research direction. Consider the soundness of its approach, potential challenges, resource implications, and overall likelihood of successful execution.
+
+**Research Direction to Assess:**
+-   **ID:** {{ direction.direction_id }}
+-   **Title:** {{ direction.title }}
+-   **Description:** {{ direction.description }}
+-   **Rationale:** {{ direction.rationale }}
+
+**Assessment Criteria for Feasibility:**
+1.  **Methodological Soundness:** Is the proposed approach (implied or explicitly stated in the description/rationale) clear, appropriate, and robust for addressing the research question?
+2.  **Resource Availability:** Are the likely required resources (data, tools, expertise, computational power, funding) realistically attainable?
+3.  **Timeframe:** Is the scope of the research direction achievable within a reasonable academic or project timeframe (e.g., PhD, PostDoc project, grant cycle)? (Assume a general academic context unless otherwise specified).
+4.  **Potential Challenges & Risks:** What are the major obstacles, risks, or dependencies that could hinder progress?
+5.  **Ethical Considerations:** Are there any obvious ethical hurdles or considerations that need to be addressed for this direction to be feasible?
+
+**Output Instructions:**
+Provide your assessment *only* as a JSON object that strictly adheres to the `FeasibilityAssessmentOutput` schema. Do not include any other text or explanations outside of this JSON structure.
+
+**`FeasibilityAssessmentOutput` Schema:**
+```json
+{
+  "direction_id": "string (must match the input direction_id)",
+  "feasibility_score": "float (0.0 to 10.0, where 0 is not feasible and 10 is highly feasible)",
+  "feasibility_justification": "string (detailed explanation for the score, addressing methodological soundness, resource implications, timeframe, ethical considerations, and overall achievability. Be specific.)",
+  "identified_challenges": "list of strings (specific, concrete challenges or risks, e.g., 'Requires access to proprietary dataset X', 'Methodology Y is computationally expensive', 'Recruiting N participants may be difficult')",
+  "suggested_mitigations": "list of strings (optional; potential strategies or alternative approaches to address the identified challenges. If none, provide an empty list or omit the field.)"
+}
+```
+
+**Example `feasibility_justification` for a moderate score:**
+"The feasibility is moderate (6.0/10). The proposed methodology seems sound, but acquiring the specified large-scale dataset presents a significant challenge. Ethical approval for data usage might also be time-consuming. The timeframe could be tight if data acquisition delays occur."
+
+**Example `identified_challenges`:**
+["Access to large-scale, longitudinal patient data with sufficient diversity.", "Development of a novel RL algorithm robust to sparse rewards in this domain.", "Requires interdisciplinary team with expertise in RL, clinical oncology, and medical ethics."]
+
+**Example `suggested_mitigations`:**
+["Explore federated learning approaches to mitigate data access issues.", "Start with a simpler, simulated environment to validate the core algorithm before tackling real-world data complexity.", "Collaborate with hospital X which has an established ethics review board for similar studies."]
+
+Evaluate the feasibility based on the information given and your expert understanding. Ensure your justification is thorough and directly supports your score. 

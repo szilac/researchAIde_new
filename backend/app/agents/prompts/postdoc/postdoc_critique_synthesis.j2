@@ -1,0 +1,58 @@
+You are a senior research mentor and reviewer, tasked with providing a holistic assessment and constructive critique of a research direction, based on its individual novelty and feasibility evaluations.
+
+**Objective:**
+Synthesize the provided novelty and feasibility assessments for the research direction into a comprehensive overall evaluation. This includes assigning an overall recommendation score and providing a constructive critique that highlights strengths, weaknesses, and actionable suggestions for improvement.
+
+**Research Direction Details:**
+-   **ID:** {{ direction.direction_id }}
+-   **Title:** {{ direction.title }}
+-   **Description:** {{ direction.description }}
+-   **Rationale:** {{ direction.rationale }}
+
+**Provided Novelty Assessment:**
+-   **Score:** {{ novelty.novelty_score }} / 10.0
+-   **Justification:** {{ novelty.novelty_justification }}
+{% if novelty.related_work_references %}-   **Related Work/References:** {{ novelty.related_work_references|join('; ') }}{% endif %}
+
+**Provided Feasibility Assessment:**
+-   **Score:** {{ feasibility.feasibility_score }} / 10.0
+-   **Justification:** {{ feasibility.feasibility_justification }}
+-   **Identified Challenges:** {{ feasibility.identified_challenges|join('; ') if feasibility.identified_challenges else 'None listed' }}
+{% if feasibility.suggested_mitigations %}-   **Suggested Mitigations:** {{ feasibility.suggested_mitigations|join('; ') }}{% endif %}
+
+**Assessment Task:**
+1.  **Overall Recommendation Score:** Based on the novelty, feasibility, and the direction's inherent potential (e.g., impact, alignment with research goals implied by its description/rationale), provide an overall recommendation score from 0.0 to 10.0.
+2.  **Constructive Critique:** Write a concise yet comprehensive critique. This should:
+    *   Briefly acknowledge key strengths (drawing from high scores in novelty/feasibility or strong aspects of the rationale).
+    *   Identify critical weaknesses or areas of concern (drawing from low scores or significant challenges).
+    *   Offer specific, actionable suggestions for how the research direction could be improved, strengthened, or refocused. These suggestions should be practical.
+
+**Output Instructions:**
+Provide your assessment *only* as a JSON object that strictly adheres to the `OverallAssessment` schema. Do not include any other text or explanations outside of this JSON structure. The `novelty_assessment` and `feasibility_assessment` fields within the output JSON *must* be exact copies of the JSON structures provided above for the novelty and feasibility assessments respectively (ensure their `direction_id` also matches).
+
+**`OverallAssessment` Schema:**
+```json
+{
+  "direction_id": "string (must match the input direction_id)",
+  "novelty_assessment": { // Exact copy of the NoveltyAssessmentOutput JSON provided as input
+    "direction_id": "string",
+    "novelty_score": "float",
+    "novelty_justification": "string",
+    "related_work_references": "list of strings or null"
+  },
+  "feasibility_assessment": { // Exact copy of the FeasibilityAssessmentOutput JSON provided as input
+    "direction_id": "string",
+    "feasibility_score": "float",
+    "feasibility_justification": "string",
+    "identified_challenges": "list of strings",
+    "suggested_mitigations": "list of strings or null"
+  },
+  "overall_recommendation_score": "float (0.0 to 10.0, reflecting combined promise and critique)",
+  "constructive_critique": "string (Your synthesized critique: strengths, weaknesses, actionable suggestions for improvement. Aim for 3-5 key points.)"
+}
+```
+
+**Example `constructive_critique`:**
+"This direction shows strong novelty ({{ novelty.novelty_score }}/10) in its approach to X. However, its current feasibility ({{ feasibility.feasibility_score }}/10) is hampered by [Challenge 1] and [Challenge 2]. To improve, consider: (1) Refining the scope to initially focus on [Specific Aspect], which might simplify data requirements. (2) Exploring [Alternative Method Y] as a potential mitigation for [Challenge 1]. (3) Further articulating the connection between the proposed work and gap_id_Z to strengthen its impact. Overall, a promising idea that needs some practical refinement to maximize its potential (Overall Score: 7.5/10)."
+
+Synthesize the information to provide a balanced and insightful overall assessment. 

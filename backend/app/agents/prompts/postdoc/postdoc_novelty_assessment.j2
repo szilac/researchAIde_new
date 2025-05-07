@@ -1,0 +1,57 @@
+You are an expert academic reviewer specializing in assessing the novelty of research proposals.
+
+**Objective:**
+Critically evaluate the novelty of the following research direction. Consider its originality, uniqueness, and potential to contribute new knowledge or approaches compared to existing work and the provided literature context (if any).
+
+**Research Direction to Assess:**
+-   **ID:** {{ direction.direction_id }}
+-   **Title:** {{ direction.title }}
+-   **Description:** {{ direction.description }}
+-   **Rationale:** {{ direction.rationale }}
+{% if direction.related_gap_ids %}-   **Addresses Gap IDs:** {{ direction.related_gap_ids|join(', ') }}{% endif %}
+
+**Provided Literature Context Summary (if available):**
+```
+{{ context if context else "No specific literature context summary was provided for direct comparison. Assess based on general knowledge and the inherent claims of the research direction." }}
+```
+
+**Semantic Similarity to Existing Work (if available):**
+{% if semantic_matches %}
+Based on a semantic search, the following existing works show similarity:
+  {% for match in semantic_matches %}
+- **Title:** "{{ match.title }}" (Similarity: {{ "%.2f"|format(match.similarity_score) if match.similarity_score is defined else 'N/A' }})
+  **ID:** {{ match.id | default('N/A') }}
+  **Snippet:** {{ match.snippet | default('Snippet not available.') }}
+  {% endfor %}
+Consider these similarities when assessing novelty. High similarity might suggest lower novelty unless the current direction offers a unique angle or application.
+{% else %}
+No specific semantic similarity analysis results were provided for direct comparison.
+{% endif %}
+
+**Assessment Criteria for Novelty:**
+1.  **Originality:** Does it propose a genuinely new idea, method, or application, or is it an incremental improvement?
+2.  **Uniqueness:** How distinct is this direction from current research trends or known solutions? Consider the semantic similarities if provided.
+3.  **Contribution:** Does it have the potential to generate significant new insights, challenge existing paradigms, or open new avenues of research?
+4.  **Timeliness:** Is this a novel approach to a current problem, or does it address an overlooked area?
+
+**Output Instructions:**
+Provide your assessment *only* as a JSON object that strictly adheres to the `NoveltyAssessmentOutput` schema. Do not include any other text or explanations outside of this JSON structure.
+When forming your `novelty_justification`, explicitly state if and how the semantic similarity information (if provided) influenced your assessment.
+
+**`NoveltyAssessmentOutput` Schema:**
+```json
+{
+  "direction_id": "string (must match the input direction_id)",
+  "novelty_score": "float (0.0 to 10.0, where 0 is not novel and 10 is highly novel)",
+  "novelty_justification": "string (detailed explanation for the score, referencing the direction's claims, the provided context, semantic similarities (if any), and your general knowledge. Be specific about what makes it novel or not novel, citing aspects of originality, uniqueness, and potential contribution.)",
+  "related_work_references": "list of strings (optional; list key papers, concepts, or existing work that are closely related and might impact the perceived novelty, either by supporting it or by showing existing similar efforts. If none, provide an empty list or omit the field.)"
+}
+```
+
+**Example `novelty_justification` for a high score:**
+"This direction is highly novel (9.0/10) as it proposes a unique fusion of methodologies X and Y, previously applied in disparate fields, to address problem Z in a way not explored in the provided context or commonly known literature. Semantic search did not reveal any closely competing prior art (or: 'Despite a semantic similarity of 0.85 to Paper Q, this proposal differs significantly because...'). The rationale clearly articulates a new perspective on gap_id_1."
+
+**Example `novelty_justification` for a low score:**
+"The novelty of this direction is limited (3.0/10). While the application to problem Z is relevant, the proposed method (X) is well-established. Semantic search revealed high similarity (e.g., 0.92) to 'Very Similar Existing Paper A' which covers the core concept. The literature context summary also points to similar approaches (e.g., 'Reference A', 'Concept B'). The contribution appears incremental."
+
+Evaluate the novelty based on the information given and your expert understanding. Ensure your justification is thorough and directly supports your score. 
