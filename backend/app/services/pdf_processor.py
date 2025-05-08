@@ -1,11 +1,14 @@
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import PyPDF2 # Added import
 import spacy # Added import
 import re # Added import
+import asyncio # Added
+import aiohttp # Added
+import tempfile # Added
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -28,17 +31,18 @@ class PDFProcessorBase(ABC):
     Includes basic error handling and logging.
     """
 
-    def __init__(self, pdf_path: str | Path):
+    def __init__(self, pdf_url_or_path: Union[str, Path]):
         """
-        Initializes the processor with the path to the PDF file.
+        Initializes the processor with the path or URL to the PDF file.
 
         Args:
-            pdf_path: Path to the PDF file to be processed.
+            pdf_url_or_path: URL string or Path object for the PDF file.
         """
-        self.pdf_path = Path(pdf_path)
-        if not self.pdf_path.is_file() or self.pdf_path.suffix.lower() != '.pdf':
-            raise ValueError(f"Invalid PDF path: {self.pdf_path}")
-        logger.info(f"Initialized PDF processor for: {self.pdf_path.name}")
+        self.input_location = pdf_url_or_path # Store original input
+        self.pdf_path: Optional[Path] = None # Will be set after download/validation
+        self._is_temp_file: bool = False
+        self._temp_file_path: Optional[Path] = None
+        # Validation happens in process or a dedicated setup method
 
     @abstractmethod
     def extract_text(self) -> str:
@@ -85,32 +89,80 @@ class PDFProcessorBase(ABC):
         """
         pass
 
-    def process(self) -> Dict[str, Any]:
+    async def _download_if_url(self) -> None:
+        """Downloads the PDF if input_location is a URL, sets self.pdf_path to temp path."""
+        if isinstance(self.input_location, str) and self.input_location.startswith(('http://', 'https://')):
+            logger.info(f"Input is a URL, attempting download: {self.input_location}")
+            try:
+                # Create a temp file first
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                    self._temp_file_path = Path(tmp_file.name)
+                
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(self.input_location) as response:
+                        response.raise_for_status() # Raise exception for bad status codes
+                        # Write content to the temp file
+                        with open(self._temp_file_path, 'wb') as f_out:
+                            while True:
+                                chunk = await response.content.read(8192)
+                                if not chunk:
+                                    break
+                                f_out.write(chunk)
+                        self.pdf_path = self._temp_file_path
+                        self._is_temp_file = True
+                        logger.info(f"Successfully downloaded URL to temporary file: {self.pdf_path}")
+            except Exception as e:
+                logger.error(f"Failed to download PDF from URL {self.input_location}: {e}", exc_info=True)
+                # Clean up temp file if download failed partially
+                if self._temp_file_path and self._temp_file_path.exists():
+                    try: self._temp_file_path.unlink() 
+                    except OSError: pass
+                raise IOError(f"Failed to download PDF from {self.input_location}") from e
+        elif isinstance(self.input_location, Path):
+            logger.info(f"Input is a Path object: {self.input_location}")
+            self.pdf_path = self.input_location
+            self._is_temp_file = False
+        elif isinstance(self.input_location, str):
+             logger.info(f"Input is a string, assuming local path: {self.input_location}")
+             self.pdf_path = Path(self.input_location)
+             self._is_temp_file = False
+        else:
+             raise ValueError(f"Invalid input type for pdf_url_or_path: {type(self.input_location)}")
+        
+        # Final validation of the determined self.pdf_path
+        if not self.pdf_path or not self.pdf_path.is_file() or self.pdf_path.suffix.lower() != '.pdf':
+             raise ValueError(f"Invalid or non-existent PDF path determined: {self.pdf_path}")
+
+    async def process(self) -> Dict[str, Any]:
         """
-        Orchestrates the PDF processing workflow: extract, clean, structure.
+        Orchestrates the PDF processing workflow: download (if URL), extract, clean, structure.
+        Cleans up temporary file if one was created.
 
         Returns:
             A dictionary containing the processing results (e.g., cleaned text, structure).
-            Returns an empty dict if processing fails.
+            Includes an 'error' key if processing fails.
         """
-        logger.info(f"Starting processing for {self.pdf_path.name}")
         results = {}
         try:
-            raw_text = self.extract_text()
+            await self._download_if_url() # Handles download and sets self.pdf_path
+            logger.info(f"Starting processing for {self.pdf_path.name} (Path: {self.pdf_path})")
+            
+            # Run synchronous methods in thread pool
+            raw_text = await asyncio.to_thread(self.extract_text)
             if not raw_text:
                 logger.warning(f"No text extracted from {self.pdf_path.name}")
-                return results
+                # Decide if we want to return error or empty results
+                return {"error": "No text extracted", "source_filename": self.pdf_path.name}
 
-            cleaned_text = self.clean_text(raw_text)
+            cleaned_text = await asyncio.to_thread(self.clean_text, raw_text)
             if not cleaned_text:
                 logger.warning(f"Text cleaning resulted in empty string for {self.pdf_path.name}")
-                # Decide if we should proceed with raw text or stop
-                cleaned_text = raw_text # Fallback for now
+                cleaned_text = raw_text # Fallback
 
-            structure = self.extract_structure(cleaned_text) # Use cleaned text for structure analysis
+            structure = await asyncio.to_thread(self.extract_structure, cleaned_text)
 
             results = {
-                "raw_text_preview": raw_text[:500] + "..." if len(raw_text) > 500 else raw_text, # For logging/preview
+                "raw_text_preview": raw_text[:500] + "..." if len(raw_text) > 500 else raw_text,
                 "cleaned_text": cleaned_text,
                 "structure": structure,
                 "source_filename": self.pdf_path.name
@@ -118,9 +170,17 @@ class PDFProcessorBase(ABC):
             logger.info(f"Successfully processed {self.pdf_path.name}")
 
         except Exception as e:
-            logger.error(f"Error processing {self.pdf_path.name}: {e}", exc_info=True)
-            # Optionally, return partial results or specific error info
-            results = {"error": str(e), "source_filename": self.pdf_path.name}
+            logger.error(f"Error processing {self.input_location}: {e}", exc_info=True)
+            results = {"error": str(e), "source_filename": getattr(self.pdf_path, 'name', str(self.input_location))}
+        finally:
+            # Clean up the temporary file if it was created
+            if self._is_temp_file and self.pdf_path and self.pdf_path.exists():
+                try:
+                    self.pdf_path.unlink()
+                    logger.info(f"Cleaned up temporary file: {self.pdf_path}")
+                except Exception as e_unlink:
+                    logger.error(f"Error deleting temporary file {self.pdf_path}: {e_unlink}")
+                    # Log error but don't necessarily overwrite primary error in results
 
         return results
 
@@ -138,15 +198,20 @@ class PyPDF2Processor(PDFProcessorBase):
     """
     Concrete implementation of PDFProcessorBase using the PyPDF2 library.
     Focuses on basic text extraction.
+    Now handles URLs via inherited async process method.
     """
 
     def extract_text(self) -> str:
         """
         Extracts text from the PDF using PyPDF2.
+        Expects self.pdf_path to be set by the process() method.
 
         Returns:
             The extracted text as a single string, or an empty string if extraction fails.
         """
+        if not self.pdf_path:
+            logger.error("extract_text called but self.pdf_path is not set.")
+            return ""
         logger.info(f"Extracting text using PyPDF2 for {self.pdf_path.name}...")
         text = ""
         try:
@@ -163,8 +228,7 @@ class PyPDF2Processor(PDFProcessorBase):
             return text.strip()
         except PyPDF2.errors.PdfReadError as e:
             logger.error(f"PyPDF2 error reading {self.pdf_path.name}: {e}")
-            # Potentially try other methods or raise specific exception
-            return "" # Return empty on read error for now
+            return "" 
         except Exception as e:
             logger.error(f"Unexpected error during PyPDF2 extraction for {self.pdf_path.name}: {e}", exc_info=True)
             return ""
@@ -174,67 +238,54 @@ class PyPDF2Processor(PDFProcessorBase):
         Analyzes extracted text to identify structure (paragraphs, headers, references).
         Uses basic regex for headers/references and newline heuristics for paragraphs.
         Reflects work for subtasks 6.6 and incorporates regex from 6.4.
+        Expects self.pdf_path to be set by the process() method.
         """
+        if not self.pdf_path:
+             logger.error("extract_structure called but self.pdf_path is not set.")
+             return {}
         logger.info(f"Extracting structure using spaCy/regex for {self.pdf_path.name}...")
         if not nlp:
             logger.error("spaCy model not loaded. Cannot extract structure.")
             return {}
-
+        
         structure = {
             "paragraphs": [],
             "headers": [],
             "references": []
         }
-        # Regex patterns (simple examples, can be expanded)
-        # Header: Starts with I., II., 1., 1.1., A., etc. followed by text
         header_pattern = re.compile(r"^([IVXLCDM]+|[A-Z]|[0-9]+(?:\.[0-9]+)*)\.\s+.+")
-        # Reference: Starts with [1] or (1)
         ref_pattern = re.compile(r"^\s*[\[\(]\d+[\]\)]\s+.+")
 
         try:
-            # Split into potential lines/blocks based on newlines first
             lines = text.split('\n')
             current_paragraph = ""
-
             for line in lines:
                 line_stripped = line.strip()
                 if not line_stripped:
-                    # Empty line often signifies paragraph break
                     if current_paragraph:
                         structure["paragraphs"].append(current_paragraph.strip())
                         current_paragraph = ""
                     continue
-
                 is_header = header_pattern.match(line_stripped)
                 is_reference = ref_pattern.match(line_stripped)
-
                 if is_header:
-                    if current_paragraph: # End previous paragraph
+                    if current_paragraph:
                         structure["paragraphs"].append(current_paragraph.strip())
                         current_paragraph = ""
                     structure["headers"].append(line_stripped)
                 elif is_reference:
-                    if current_paragraph: # End previous paragraph
+                    if current_paragraph:
                         structure["paragraphs"].append(current_paragraph.strip())
                         current_paragraph = ""
                     structure["references"].append(line_stripped)
                 else:
-                    # Append to current paragraph
                     current_paragraph += (" " if current_paragraph else "") + line_stripped
-
-            # Add any trailing paragraph
             if current_paragraph:
                 structure["paragraphs"].append(current_paragraph.strip())
-
-            # SpaCy processing can be added here for more detailed analysis if needed
-            # doc = nlp(text) # Process full text
-            # sentences = [sent.text.strip() for sent in doc.sents] # Example
-
             logger.info(f"Successfully extracted structure for {self.pdf_path.name}")
-
         except Exception as e:
             logger.error(f"Error during structure extraction for {self.pdf_path.name}: {e}", exc_info=True)
-            return {} # Return empty dict on error
+            return {}
 
         return structure
 
@@ -242,7 +293,7 @@ class PyPDF2Processor(PDFProcessorBase):
         """
         Cleans and normalizes the extracted text using basic regex operations.
         Focuses on fixing hyphenation and normalizing whitespace.
-        More advanced cleaning (headers/footers) can be added later.
+        Expects self.pdf_path to be set by the process() method.
 
         Args:
             text: The raw text extracted from the PDF.
@@ -250,30 +301,18 @@ class PyPDF2Processor(PDFProcessorBase):
         Returns:
             A string containing the cleaned text.
         """
+        if not self.pdf_path:
+             logger.error("clean_text called but self.pdf_path is not set.")
+             return ""
         logger.info(f"Cleaning text for {self.pdf_path.name}...")
         if not text:
             return ""
 
         cleaned_text = text
-
-        # 1. Fix hyphenation across line breaks
-        # Looks for a word ending in hyphen, followed by newline, then a word starting with lowercase letter
         cleaned_text = re.sub(r"(\w+)-\n(\w+)", r"\1\2", cleaned_text)
-
-        # 2. Normalize whitespace
-        # Replace multiple spaces/tabs with a single space
         cleaned_text = re.sub(r"[ \t]+", " ", cleaned_text)
-        # Replace multiple newlines with a single newline (or double for paragraphs if preferred)
-        # Let's keep double newlines for paragraph structure identified in extract_structure
         cleaned_text = re.sub(r"\n{3,}", "\n\n", cleaned_text)
-        # Remove leading/trailing whitespace from the whole text and individual lines
         cleaned_text = "\n".join([line.strip() for line in cleaned_text.strip().split('\n')])
-
-        # 3. Handle special characters (Optional - basic example: replace ligatures)
-        # This is highly dependent on the content and desired output
-        # cleaned_text = cleaned_text.replace('\ufb01', 'fi').replace('\ufb02', 'fl') # Example for fi/fl ligatures
-
-        # 4. TODO: Add logic for header/footer removal if feasible patterns exist
 
         logger.info(f"Successfully cleaned text for {self.pdf_path.name}")
         return cleaned_text

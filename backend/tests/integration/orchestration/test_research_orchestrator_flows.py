@@ -26,25 +26,30 @@ def mock_dependencies():
         "phd_agent": MockPhDAgent(),
         "postdoc_agent": MockPostDocAgent(),
         "arxiv_service": MockArxivService(),
-        "pdf_processor_service": MockPyPDF2Processor(),
+        # "pdf_processor_service": MockPyPDF2Processor(), # Removed as orchestrator no longer takes instance
         "ingestion_service": MockIngestionService(),
         "vector_db_client": MockVectorDBClient(),
-        "logger": MagicMock(), # Using a generic MagicMock for the logger for now
+        "logger": MagicMock(), 
     }
 
 @pytest.fixture
 def research_orchestrator(mock_dependencies):
     """Initializes ResearchOrchestrator with mock dependencies."""
-    # Ensure logger is handled correctly - added to __init__ recently
-    resolved_logger = mock_dependencies["logger"] or logging.getLogger("TestOrchestrator") 
+    # Ensure logger is handled correctly
+    resolved_logger = mock_dependencies.get("logger") or logging.getLogger("TestOrchestrator") 
+    # Note: We are providing a mock logger instance to the orchestrator __init__ here,
+    # even though the actual __init__ might not accept it anymore.
+    # The test currently doesn't seem to rely on this mock logger being used by the orchestrator directly.
+    # If tests depended on mocking the orchestrator's internal logger, this fixture would need adjustment.
     
     return ResearchOrchestrator(
         phd_agent=mock_dependencies["phd_agent"],
         arxiv_service=mock_dependencies["arxiv_service"],
-        pdf_processor_service=mock_dependencies["pdf_processor_service"],
+        # pdf_processor_service=mock_dependencies["pdf_processor_service"], # Removed argument
         ingestion_service=mock_dependencies["ingestion_service"],
         vector_db_client=mock_dependencies["vector_db_client"],
         postdoc_agent=mock_dependencies["postdoc_agent"]
+        # No checkpointer or logger passed for basic tests
     )
 
 def test_orchestrator_initialization_and_graph_compilation(research_orchestrator):

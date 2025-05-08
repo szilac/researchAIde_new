@@ -14,20 +14,20 @@ def should_refine_further(state: GraphState) -> str:
     
     if postdoc_eval.get("accept_as_is") == True:
         print("--- Condition: Directions accepted by PostDoc/Human. ---")
-        return "presenting_final_directions"
+        return "finalize_output"
 
     if iteration_count >= MAX_ITERATIONS_REFINE:
         print("--- Condition: Max iterations reached. ---")
-        return "presenting_final_directions"
+        return "finalize_output"
     
     quality_score = postdoc_eval.get("score", 0.0)
     MIN_ACCEPTABLE_SCORE = 0.85 
     if quality_score >= MIN_ACCEPTABLE_SCORE:
         print(f"--- Condition: Quality score ({quality_score}) met threshold. ---")
-        return "presenting_final_directions"
+        return "finalize_output"
 
     print("--- Condition: Continuing refinement loop. ---")
-    return "evaluate_research_directions"
+    return "refine_directions"
 
 def check_for_errors(state: GraphState) -> str:
     """

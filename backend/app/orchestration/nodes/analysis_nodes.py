@@ -1,5 +1,9 @@
 from typing import Dict, Any, Optional, List
 import traceback
+import asyncio # Added for to_thread
+import aiohttp # Added for async HTTP requests
+import tempfile # Added for temporary files
+from pathlib import Path # Added for path operations
 
 from ..graph_state import GraphState
 from app.models.message_models import AgentMessage, PerformativeType
@@ -115,7 +119,7 @@ async def create_initial_shortlist_node(state: GraphState) -> Dict[str, Any]:
             logger.warning("No scored ArXiv results to create a shortlist from.")
             return {
                 "initial_paper_shortlist": [],
-                "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_status", content={"status": "Shortlist creation skipped, no scored results"})],
+                "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.STATUS_UPDATE, content={"status": "Shortlist creation skipped, no scored results"})],
                 "error_message": None, "error_source_node": None, "error_details": None,
             }
 
@@ -157,7 +161,7 @@ async def request_shortlist_review_node(state: GraphState, graph_checkpointer: O
             logger.warning("No initial paper shortlist for review. Auto-confirming empty list.")
             return {
                 "confirmed_paper_shortlist": [],
-                "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_status", content={"status": "Shortlist review skipped, no papers"})],
+                "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.STATUS_UPDATE, content={"status": "Shortlist review skipped, no papers"})],
                 "last_events": [{"event_type": "ShortlistReviewNotRequired", "details": {"node": node_name, "reason": "Empty initial shortlist"}}],
                 "error_message": None, "error_source_node": None, "error_details": None,
             }
@@ -211,7 +215,7 @@ async def request_shortlist_review_node(state: GraphState, graph_checkpointer: O
             "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="error_report", content={"error": str(e)})]
         }
 
-async def process_and_ingest_papers_node(state: GraphState, pdf_processor_service: PyPDF2Processor, ingestion_service: IngestionService) -> Dict[str, Any]:
+async def process_and_ingest_papers_node(state: GraphState, pdf_processor_class: type[PyPDF2Processor], ingestion_service: IngestionService) -> Dict[str, Any]:
     node_name = "process_and_ingest_papers_node"
     logger.info(f"--- Node: {node_name} (Standalone Function) ---")
     session_id = state.get("session_id", "unknown_session")
@@ -219,23 +223,23 @@ async def process_and_ingest_papers_node(state: GraphState, pdf_processor_servic
     processed_paper_ids = []
     failed_paper_ids = []
 
-    try:
+    try: # Outer try: Covers setup before the loop and general node execution
         confirmed_shortlist = state.get("confirmed_paper_shortlist", [])
         
-        if not pdf_processor_service:
-            raise ValueError("PDFProcessorService was not provided to process_and_ingest_papers_node.")
+        if not pdf_processor_class: # Check if class was passed
+            raise ValueError("PyPDF2Processor class was not provided.")
         if not ingestion_service:
-            raise ValueError("IngestionService was not provided to process_and_ingest_papers_node.")
+            raise ValueError("IngestionService instance was not provided.")
 
         if not confirmed_shortlist:
             logger.warning("No confirmed shortlist for processing and ingestion.")
             return {
                 "ingestion_reports": [], 
                 "processed_paper_ids": [],
-                "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_status", content={"status": "Processing/ingestion skipped, no confirmed shortlist"})],
+                "messages": add_messages(state.get("messages",[]),[AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.STATUS_UPDATE, content={"status": "Processing/ingestion skipped, no confirmed shortlist"})]),
                 "error_message": None, "error_source_node": None, "error_details": None,
             }
-
+        
         for paper_data in confirmed_shortlist:
             paper_id = paper_data.get("entry_id") or paper_data.get("id")
             paper_title = paper_data.get("title", "Unknown Title")
@@ -246,58 +250,93 @@ async def process_and_ingest_papers_node(state: GraphState, pdf_processor_servic
                 ingestion_reports.append({"paper_id": paper_id or "unknown", "title": paper_title, "status": "skipped_missing_data", "error": "Missing entry_id or pdf_url"})
                 failed_paper_ids.append(paper_id or "unknown")
                 continue
+            
+            # Removed temp_pdf_path variable declaration
+            # --- Start: Inner Try/Except for single paper ---
+            try: 
+                logger.info(f"Processing paper: {paper_title} ({paper_id}) via URL: {paper_pdf_url}")
 
-            try:
-                logger.info(f"Processing paper: {paper_title} ({paper_id})")
-                # Actual call to pdf_processor_service
-                # processed_content_output = await pdf_processor_service.process_pdf(paper_pdf_url, paper_id)
-                logger.info(f"[Mock] Simulating PDF processing for {paper_pdf_url}")
-                mock_text_content = f"Simulated processed text for {paper_title}. Abstract: {paper_data.get('summary', '')}."
-                processed_content_output = {
-                    "text_content": mock_text_content,
-                    "metadata": {"source_id": paper_id, "title": paper_title, "url": paper_pdf_url},
-                    "page_chunks": [mock_text_content[i:i+500] for i in range(0, len(mock_text_content), 500)]
-                }
-                logger.info(f"[Mock] PDF processing complete for {paper_id}")
+                # 1. Instantiate the processor with the URL
+                processor_instance = pdf_processor_class(pdf_url_or_path=paper_pdf_url)
 
-                if not processed_content_output or not processed_content_output.get("text_content"):
-                    raise ValueError("PDF processing returned no content.")
-
-                logger.info(f"Ingesting paper: {paper_title} ({paper_id})")
-                # Actual call to ingestion_service
-                # collection_name = f"session_{session_id}_papers" # Define collection name
-                # ingestion_result = await ingestion_service.ingest_document(collection_name=collection_name, content=processed_content_output['text_content'], metadata=processed_content_output['metadata'])
-                mock_ingestion_status = "success"
-                mock_vector_ids_count = len(processed_content_output.get("page_chunks", []))
-                ingestion_report_detail = {"paper_id": paper_id, "title": paper_title, "status": mock_ingestion_status, "detail": f"Successfully ingested with {mock_vector_ids_count} vector chunks."}
-                logger.info(f"[Mock] Ingestion complete for {paper_id}")
+                # 2. Call the async process method
+                processed_content_output: Dict[str, Any] = await processor_instance.process()
                 
-                ingestion_reports.append(ingestion_report_detail)
-                processed_paper_ids.append(paper_id)
+                # Check for errors reported by the processor
+                if "error" in processed_content_output or not processed_content_output.get("cleaned_text"):
+                    error_detail = processed_content_output.get("error", "PDF processing returned no content or failed.")
+                    raise ValueError(f"PDF processing failed: {error_detail}")
+                logger.info(f"Processed {paper_title} successfully.")
 
-            except Exception as paper_processing_error:
-                logger.error(f"!!! ERROR processing/ingesting paper {paper_title} ({paper_id}): {paper_processing_error} !!!", exc_info=True)
-                ingestion_reports.append({"paper_id": paper_id, "title": paper_title, "status": "failed", "error": str(paper_processing_error)})
+                # 3. Ingest (using processed_content_output['cleaned_text'])
+                ingestion_metadata = { # Prepare metadata
+                    "document_id": paper_id, "session_id": session_id, "title": paper_title,
+                    "source_url": paper_pdf_url, "original_arxiv_id": paper_data.get("id"),
+                    "authors": paper_data.get("authors", []),
+                    "published_date": paper_data.get("published"),
+                    "pdf_structure_summary": processed_content_output.get("structure", {}),
+                    **(paper_data.get("metadata", {})), 
+                    "processing_source_filename": processed_content_output.get("source_filename") # Name might be temp name
+                }
+                logger.info(f"Ingesting paper: {paper_title} ({paper_id})")
+                collection_name = f"session_{session_id}_papers"
+                ingestion_result = await ingestion_service.ingest_document(
+                    session_id=session_id, document_id=paper_id,
+                    document_text=processed_content_output['cleaned_text'],
+                    document_metadata=ingestion_metadata 
+                )
+                
+                ingestion_status = "success"
+                ingestion_detail_message = "Successfully ingested."
+                if isinstance(ingestion_result, dict):
+                    ingestion_status = ingestion_result.get("status", "success")
+                    ingestion_detail_message = ingestion_result.get("detail", "Successfully ingested.")
+                elif not ingestion_result:
+                    ingestion_status = "failed"
+                    ingestion_detail_message = "Ingestion service reported failure."
+
+                if ingestion_status != "success":
+                     raise ValueError(f"Ingestion failed: {ingestion_detail_message}")
+
+                ingestion_reports.append({"paper_id": paper_id, "title": paper_title, "status": ingestion_status, "detail": ingestion_detail_message})
+                processed_paper_ids.append(paper_id)
+                logger.info(f"Successfully processed and ingested {paper_title} ({paper_id}).")
+
+            except Exception as paper_error: # Handles errors for this specific paper
+                logger.error(f"!!! ERROR processing/ingesting paper {paper_title} ({paper_id}): {paper_error} !!!", exc_info=False)
+                ingestion_reports.append({"paper_id": paper_id, "title": paper_title, "status": "failed", "error": str(paper_error)})
                 failed_paper_ids.append(paper_id)
+            
+            # Removed finally block for temp file cleanup, processor handles it
+            # --- End: Inner Try/Except for single paper ---
+        # --- End: For loop --- 
         
+        # Outside the loop, prepare the final return dict for success
         completion_message_content = {"status": "Paper processing/ingestion phase complete", "total_processed": len(processed_paper_ids), "total_failed": len(failed_paper_ids), "reports_count": len(ingestion_reports)}
         processing_ingestion_done_message = AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_result", content=completion_message_content)
         
         return {
             "ingestion_reports": ingestion_reports,
             "processed_paper_ids": processed_paper_ids,
-            "messages": [processing_ingestion_done_message],
+            "messages": add_messages(state.get("messages",[]),[processing_ingestion_done_message]),
             "error_message": None, "error_source_node": None, "error_details": None
         }
-    except Exception as e:
-        logger.error(f"!!! ERROR in {node_name}: {e} !!!", exc_info=True)
+
+    except Exception as e: # Outer except: Handles errors in node setup 
+        logger.error(f"!!! ERROR in {node_name} (Outer Scope): {e} !!!", exc_info=True)
+        error_agent_message = AgentMessage(
+            conversation_id=session_id, 
+            sender_agent_id=node_name, 
+            performative="error_report", 
+            content={"error": str(e), "details": "Error in node setup."}
+        )
         return {
             "error_message": str(e),
             "error_source_node": node_name,
             "error_details": traceback.format_exc(),
-            "ingestion_reports": ingestion_reports,
-            "processed_paper_ids": processed_paper_ids,
-            "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="error_report", content={"error": str(e)})]
+            "ingestion_reports": ingestion_reports, 
+            "processed_paper_ids": processed_paper_ids, 
+            "messages": add_messages(state.get("messages",[]),[error_agent_message])
         }
 
 async def perform_literature_analysis_node(state: GraphState, phd_agent: PhDAgent, vector_db_client: Any) -> Dict[str, Any]: # vector_db_client type hint: VectorDBClient

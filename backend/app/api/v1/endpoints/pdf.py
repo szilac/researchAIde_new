@@ -53,20 +53,19 @@ async def process_pdf_endpoint(
             temp_pdf_path = Path(temp_file.name)
         logger.debug(f"Saved uploaded file to temporary path: {temp_pdf_path}")
 
-        processor = PyPDF2Processor(pdf_path=temp_pdf_path)
-        results = processor.process() # This is a synchronous call
+        # Instantiate processor using the correct keyword argument
+        processor = PyPDF2Processor(pdf_url_or_path=temp_pdf_path)
+        # Await the now async process() method
+        results = await processor.process() 
 
         if not results or results.get("error"):
             error_detail = results.get("error", "Unknown processing error")
             logger.error(f"Processing failed for {file.filename}: {error_detail}")
-            # Raise HTTPException instead of returning dict with error key if using response_model
             raise HTTPException(status_code=500, detail=f"PDF processing failed: {error_detail}")
 
         logger.info(f"Successfully processed file: {file.filename}")
-        # Ensure the structure key exists, even if empty
         if "structure" not in results:
             results["structure"] = {}
-        # Overwrite source_filename with the original uploaded filename
         results["source_filename"] = file.filename
         return results # FastAPI will validate this against PDFProcessResponse
 
