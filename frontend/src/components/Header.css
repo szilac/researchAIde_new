@@ -1,0 +1,76 @@
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.app-header.dark {
+  background-color: #343a40;
+  color: #f8f9fa;
+  border-bottom: 1px solid #495057;
+}
+
+.app-header .logo a {
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-decoration: none;
+  color: #007bff;
+}
+
+.app-header.dark .logo a {
+  color: #79c0ff; /* Lighter blue for dark mode */
+}
+
+
+.app-header nav ul {
+  list-style: none;
+  display: flex;
+  margin: 0;
+  padding: 0;
+}
+
+.app-header nav ul li {
+  margin-left: 1.5rem;
+}
+
+.app-header nav ul li a {
+  text-decoration: none;
+  color: #007bff;
+  font-weight: 500;
+}
+
+.app-header.dark nav ul li a {
+  color: #79c0ff;
+}
+
+.app-header nav ul li a:hover {
+  text-decoration: underline;
+}
+
+.app-header .theme-toggle button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #007bff;
+  background-color: transparent;
+  color: #007bff;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.app-header.dark .theme-toggle button {
+  border-color: #79c0ff;
+  color: #79c0ff;
+}
+
+.app-header .theme-toggle button:hover {
+  background-color: #007bff;
+  color: white;
+}
+
+.app-header.dark .theme-toggle button:hover {
+  background-color: #79c0ff;
+  color: #343a40;
+} 

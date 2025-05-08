@@ -1,0 +1,31 @@
+.app-footer {
+  padding: 1.5rem 2rem;
+  text-align: center;
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.app-footer.dark {
+  background-color: #343a40;
+  color: #adb5bd;
+  border-top: 1px solid #495057;
+}
+
+.app-footer p {
+  margin: 0.25rem 0;
+}
+
+.app-footer a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.app-footer.dark a {
+  color: #79c0ff;
+}
+
+.app-footer a:hover {
+  text-decoration: underline;
+} 

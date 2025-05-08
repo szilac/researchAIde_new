@@ -1,0 +1,71 @@
+/* Global App Styles */
+#root {
+  /* Ensures the root element takes up at least the full viewport height */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Ensure app-container takes full height */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.app-container.light {
+  background-color: #ffffff; /* Light theme background */
+  color: #212529; /* Light theme text color */
+}
+
+.app-container.dark {
+  background-color: #212529; /* Dark theme background */
+  color: #f8f9fa; /* Dark theme text color */
+}
+
+.main-content {
+  flex-grow: 1; /* Allows the main content to take up available space */
+  padding: 1rem 2rem; /* Add some padding */
+  /* Add any other styles for the main content area */
+}
+
+/* You can keep or remove the default Vite styles below based on your needs */
+
+/* Default Vite styles that were previously in App.css - can be adjusted or removed */
+/*
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+*/
