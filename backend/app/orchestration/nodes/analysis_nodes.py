@@ -1,15 +1,17 @@
-\
 from typing import Dict, Any, Optional, List
 import traceback
 
 from ..graph_state import GraphState
-from backend.app.models.message_models import AgentMessage, PerformativeType
-from backend.app.utils.logging_utils import get_logger # Assuming a shared logger
+from app.models.message_models import AgentMessage, PerformativeType
+from app.utils.logging_utils import get_logger
+from langgraph.graph.message import add_messages
 
 # Type hints for agents/services
-from backend.app.agents.phd_agent import PhDAgent, AssessedPaperRelevance, LiteratureAnalysisOutput
-from backend.app.services.pdf_processor import PyPDF2Processor
-from backend.app.services.ingestion_service import IngestionService
+from app.agents.phd_agent import PhDAgent
+from app.services.pdf_processor import PyPDF2Processor
+from app.services.ingestion_service import IngestionService
+from app.models.operation_models import PaperRelevanceOutput, PaperRelevanceAssessment, LiteratureAnalysisOutput
+
 # from langgraph.checkpoint.base import BaseCheckpointSaver # Needed if directly interacting with checkpointer
 
 logger = get_logger(__name__)
@@ -18,6 +20,7 @@ async def score_paper_relevance_node(state: GraphState, phd_agent: PhDAgent) -> 
     node_name = "score_paper_relevance_node"
     logger.info(f"--- Node: {node_name} (Standalone Function) ---")
     session_id = state.get("session_id", "unknown_session")
+    scored_results_list = []
     try:
         raw_arxiv_results = state.get("raw_arxiv_results", [])
         research_query = state.get("research_query")
@@ -34,30 +37,42 @@ async def score_paper_relevance_node(state: GraphState, phd_agent: PhDAgent) -> 
                 "messages": add_messages(state.get("messages",[]), [AgentMessage(
                     conversation_id=session_id,
                     sender_agent_id=node_name,
-                    performative=PerformativeType.INFORM_RESULT,
+                    performative="inform_result",
                     content={"status": "skipped_no_raw_results", "scored_count": 0}
-                )]),
+                )]),\
                 "error_message": None, "error_source_node": None, "error_details": None,
             }
 
         logger.info(f"Calling PhDAgent to assess relevance of {len(raw_arxiv_results)} papers for query: '{research_query}'")
         
-        assessed_papers_output: Optional[List[AssessedPaperRelevance]] = await phd_agent.assess_papers_relevance(
-            papers_to_assess=raw_arxiv_results, 
-            research_query=research_query
-        )
+        for paper_data in raw_arxiv_results:
+            paper_id = paper_data.get("id")
+            title = paper_data.get("title")
+            abstract = paper_data.get("summary")
 
-        scored_results_list = []
-        if assessed_papers_output:
-            for assessed_paper_model in assessed_papers_output:
-                if hasattr(assessed_paper_model, 'model_dump'):
-                    scored_results_list.append(assessed_paper_model.model_dump(exclude_none=True))
-                elif isinstance(assessed_paper_model, dict):
-                    scored_results_list.append(assessed_paper_model)
-                else:
-                    phd_agent.logger.warning(f"Unexpected assessed paper model type: {type(assessed_paper_model)}")
-        else:
-            phd_agent.logger.warning("PhDAgent.assess_papers_relevance returned None or empty list.")
+            if not all([paper_id, title, abstract]):
+                logger.warning(f"Skipping paper due to missing id, title, or abstract: {paper_data}")
+                continue
+
+            paper_relevance_output: Optional[PaperRelevanceOutput] = await phd_agent.assess_paper_relevance(
+                paper_id=paper_id,
+                title=title,
+                abstract=abstract,
+                research_topic=research_query
+            )
+
+            if paper_relevance_output and paper_relevance_output.assessments:
+                for assessment in paper_relevance_output.assessments:
+                    if isinstance(assessment, PaperRelevanceAssessment):
+                        assessment_dict = assessment.model_dump(exclude_none=True)
+                        assessment_dict["original_paper_id"] = paper_id
+                        assessment_dict["original_title"] = title
+                        scored_results_list.append(assessment_dict)
+                    else:
+                        logger.warning(f"Unexpected assessment type in PaperRelevanceOutput: {type(assessment)}")
+            else:
+                logger.warning(f"PhDAgent.assess_paper_relevance returned None or empty assessments for paper_id: {paper_id}.")
+
 
         status_content = {
             "status": "paper_relevance_assessment_complete",
@@ -68,7 +83,7 @@ async def score_paper_relevance_node(state: GraphState, phd_agent: PhDAgent) -> 
         message_to_next_node = AgentMessage(
             conversation_id=session_id,
             sender_agent_id=node_name,
-            performative=PerformativeType.INFORM_RESULT,
+            performative="inform_result",
             content=status_content
         )
 
@@ -83,8 +98,8 @@ async def score_paper_relevance_node(state: GraphState, phd_agent: PhDAgent) -> 
             "error_message": str(e),
             "error_source_node": node_name,
             "error_details": traceback.format_exc(),
-            "scored_arxiv_results": [],
-            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.ERROR_REPORT, content={"error": str(e)})])
+            "scored_arxiv_results": scored_results_list,
+            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="error_report", content={"error": str(e)})])
         }
 
 async def create_initial_shortlist_node(state: GraphState) -> Dict[str, Any]:
@@ -100,7 +115,7 @@ async def create_initial_shortlist_node(state: GraphState) -> Dict[str, Any]:
             logger.warning("No scored ArXiv results to create a shortlist from.")
             return {
                 "initial_paper_shortlist": [],
-                "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_STATUS, content={"status": "Shortlist creation skipped, no scored results"})],
+                "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_status", content={"status": "Shortlist creation skipped, no scored results"})],
                 "error_message": None, "error_source_node": None, "error_details": None,
             }
 
@@ -112,7 +127,7 @@ async def create_initial_shortlist_node(state: GraphState) -> Dict[str, Any]:
         shortlist_creation_message = AgentMessage(
             conversation_id=session_id,
             sender_agent_id=node_name,
-            performative=PerformativeType.INFORM_RESULT,
+            performative="inform_result",
             content={"status": "Initial paper shortlist created", "shortlist_count": len(initial_shortlist), "threshold_used": shortlisting_threshold}
         )
         return {
@@ -127,7 +142,7 @@ async def create_initial_shortlist_node(state: GraphState) -> Dict[str, Any]:
             "error_source_node": node_name,
             "error_details": traceback.format_exc(),
             "initial_paper_shortlist": [],
-            "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.ERROR_REPORT, content={"error": str(e)})]
+            "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="error_report", content={"error": str(e)})]
         }
 
 async def request_shortlist_review_node(state: GraphState, graph_checkpointer: Optional[Any] = None) -> Dict[str, Any]: # graph_checkpointer type: Optional[BaseCheckpointSaver]
@@ -142,7 +157,7 @@ async def request_shortlist_review_node(state: GraphState, graph_checkpointer: O
             logger.warning("No initial paper shortlist for review. Auto-confirming empty list.")
             return {
                 "confirmed_paper_shortlist": [],
-                "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_STATUS, content={"status": "Shortlist review skipped, no papers"})],
+                "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_status", content={"status": "Shortlist review skipped, no papers"})],
                 "last_events": [{"event_type": "ShortlistReviewNotRequired", "details": {"node": node_name, "reason": "Empty initial shortlist"}}],
                 "error_message": None, "error_source_node": None, "error_details": None,
             }
@@ -176,7 +191,7 @@ async def request_shortlist_review_node(state: GraphState, graph_checkpointer: O
         review_event = AgentMessage(
             conversation_id=session_id,
             sender_agent_id=node_name,
-            performative=PerformativeType.REQUEST_ACTION,
+            performative="request_action",
             content=review_event_content
         )
         
@@ -193,7 +208,7 @@ async def request_shortlist_review_node(state: GraphState, graph_checkpointer: O
             "error_source_node": node_name,
             "error_details": traceback.format_exc(),
             "confirmed_paper_shortlist": [],
-            "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.ERROR_REPORT, content={"error": str(e)})]
+            "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="error_report", content={"error": str(e)})]
         }
 
 async def process_and_ingest_papers_node(state: GraphState, pdf_processor_service: PyPDF2Processor, ingestion_service: IngestionService) -> Dict[str, Any]:
@@ -217,7 +232,7 @@ async def process_and_ingest_papers_node(state: GraphState, pdf_processor_servic
             return {
                 "ingestion_reports": [], 
                 "processed_paper_ids": [],
-                "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_STATUS, content={"status": "Processing/ingestion skipped, no confirmed shortlist"})],
+                "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_status", content={"status": "Processing/ingestion skipped, no confirmed shortlist"})],
                 "error_message": None, "error_source_node": None, "error_details": None,
             }
 
@@ -266,7 +281,7 @@ async def process_and_ingest_papers_node(state: GraphState, pdf_processor_servic
                 failed_paper_ids.append(paper_id)
         
         completion_message_content = {"status": "Paper processing/ingestion phase complete", "total_processed": len(processed_paper_ids), "total_failed": len(failed_paper_ids), "reports_count": len(ingestion_reports)}
-        processing_ingestion_done_message = AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_RESULT, content=completion_message_content)
+        processing_ingestion_done_message = AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_result", content=completion_message_content)
         
         return {
             "ingestion_reports": ingestion_reports,
@@ -282,7 +297,7 @@ async def process_and_ingest_papers_node(state: GraphState, pdf_processor_servic
             "error_details": traceback.format_exc(),
             "ingestion_reports": ingestion_reports,
             "processed_paper_ids": processed_paper_ids,
-            "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.ERROR_REPORT, content={"error": str(e)})]
+            "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="error_report", content={"error": str(e)})]
         }
 
 async def perform_literature_analysis_node(state: GraphState, phd_agent: PhDAgent, vector_db_client: Any) -> Dict[str, Any]: # vector_db_client type hint: VectorDBClient
@@ -309,7 +324,7 @@ async def perform_literature_analysis_node(state: GraphState, phd_agent: PhDAgen
             message_content = {"status": "skipped_no_ingested_content", "papers_analyzed": 0}
             return {
                 "literature_analysis_output": message_content, 
-                "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_RESULT, content=message_content)]),
+                "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_result", content=message_content)]),
                 "error_message": None, "error_source_node": None, "error_details": None,
             }
 
@@ -329,7 +344,7 @@ async def perform_literature_analysis_node(state: GraphState, phd_agent: PhDAgen
             phd_agent.logger.warning("PhDAgent.analyze_literature returned None or unexpected format.")
             analysis_output_dict = {"status": "analysis_failed_agent_output_issue", "analyzed_papers_summary": "Agent did not return valid analysis.", "key_themes": [], "overall_summary": ""}
  
-        message_to_next_node = AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_RESULT, content=analysis_output_dict)
+        message_to_next_node = AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_result", content=analysis_output_dict)
 
         return {
             "literature_analysis_output": analysis_output_dict,
@@ -343,5 +358,5 @@ async def perform_literature_analysis_node(state: GraphState, phd_agent: PhDAgen
             "error_source_node": node_name,
             "error_details": traceback.format_exc(),
             "literature_analysis_output": {"status": "analysis_error", "error_message": str(e)},
-            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.ERROR_REPORT, content={"error": str(e)})])
+            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="error_report", content={"error": str(e)})])
         }

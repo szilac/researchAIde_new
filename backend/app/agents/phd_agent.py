@@ -2,29 +2,27 @@ import logging
 from dataclasses import dataclass, field
 from typing import List, Optional, Any, Dict
 
-from pydantic import BaseModel, Field as PydanticField
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent
+
+from app.services.llm.prompt_manager import PromptManager
+from app.models.operation_models import (
+    ChromaSearchResult,
+    ChromaQuerySummary,
+    FormulatedQuery,
+    FormulatedQueriesOutput,
+    PaperRelevanceAssessment,
+    PaperRelevanceOutput,
+    LiteratureAnalysisOutput,
+    ResearchGap,
+    IdentifiedGapsOutput,
+    ResearchDirection,
+    GeneratedDirectionsOutput
+)
 
 # Placeholder for actual service imports - will be updated as services are implemented/refactored
 # from ..services.arxiv_service import ArxivService
 # from ..services.chroma_service import ChromaDBService # Assuming ChromaDBService from Task 7
 # from ..services.llm_service import LLMManager # Assuming LLMManager from Task 4
-
-from app.services.llm.prompt_manager import PromptManager
-
-# Assuming ChromaDBService might have a search result structure like this:
-class ChromaSearchResult(BaseModel):
-    id: str
-    document: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
-    distance: Optional[float] = None
-
-class ChromaQuerySummary(BaseModel):
-    query: str
-    num_results: int
-    summary_of_findings: str # e.g., "High density of papers on X, low on Y"
-    # relevant_results: List[ChromaSearchResult] # Optional: include top few results if useful for LLM context
-
 
 logger = logging.getLogger(__name__)
 
@@ -38,60 +36,7 @@ class PhDAgentDependencies:
     llm_manager: Any = None 
     # Potentially other shared services or configurations
 
-# --- Output Model Definitions ---
-
-class FormulatedQuery(BaseModel):
-    query_string: str = PydanticField(description="The formulated search query string, optimized for Arxiv.")
-    source_topic: str = PydanticField(description="The original research topic fragment this query targets.")
-
-class FormulatedQueriesOutput(BaseModel):
-    queries: List[FormulatedQuery] = PydanticField(description="A list of formulated search queries.")
-    original_topic: str = PydanticField(description="The original research topic provided by the user.")
-
-class PaperRelevanceAssessment(BaseModel):
-    paper_id: str = PydanticField(description="Identifier of the paper (e.g., Arxiv ID).")
-    is_relevant: bool = PydanticField(description="Boolean indicating if the paper is relevant.")
-    relevance_score: float = PydanticField(description="A numerical score of relevance (e.g., 0.0 to 10.0).", ge=0.0, le=10.0)
-
-class PaperRelevanceOutput(BaseModel):
-    assessments: List[PaperRelevanceAssessment] = PydanticField(description="List of relevance assessments for papers.")
-
-# --- Output Model for analyze_literature ---
-class LiteratureAnalysisOutput(BaseModel):
-    research_topic: str = PydanticField(description="The original research topic provided.")
-    overall_summary: str = PydanticField(description="A concise summary synthesizing the key findings, themes, and methodologies from the provided literature relevant to the research topic.")
-    key_themes: List[str] = PydanticField(description="List of major recurring themes or concepts identified in the literature.")
-    common_methodologies: List[str] = PydanticField(description="List of common methodologies or approaches employed in the literature.")
-    identified_limitations: List[str] = PydanticField(description="List of explicitly mentioned limitations or shortcomings in the literature.")
-    future_work_suggestions: List[str] = PydanticField(description="List of suggestions for future work or unanswered questions found in the literature.")
-
-# --- Output Model for identify_research_gaps ---
-class ResearchGap(BaseModel):
-    gap_id: str = PydanticField(description="A concise, descriptive, slug-like ID for the research gap.")
-    title: str = PydanticField(description="A short, descriptive title for the research gap.")
-    description: str = PydanticField(description="A detailed explanation of what is missing or underexplored.")
-    supporting_evidence_summary: str = PydanticField(description="Summary of evidence from literature/vector search supporting this gap.")
-    keywords: List[str] = PydanticField(description="Keywords associated with this research gap.")
-    potential_questions_to_explore: List[str] = PydanticField(description="Potential research questions to explore to address this gap.")
-
-class IdentifiedGapsOutput(BaseModel):
-    research_topic: str = PydanticField(description="The original research topic for which gaps were identified.")
-    gaps: List[ResearchGap] = PydanticField(description="List of identified research gaps.")
-
-# --- Output Model for generate_research_directions ---
-class ResearchDirection(BaseModel):
-    direction_id: str = PydanticField(description="A unique identifier for the research direction.")
-    title: str = PydanticField(description="A concise title for the research direction.")
-    description: str = PydanticField(description="Detailed description of the potential research direction.")
-    rationale: str = PydanticField(description="Rationale linking this direction to identified gaps and literature.")
-    potential_impact: Optional[str] = PydanticField(default=None, description="Assessment of the potential impact of pursuing this direction.")
-    potential_challenges: Optional[str] = PydanticField(default=None, description="Potential challenges in pursuing this direction.")
-    related_gap_ids: List[str] = PydanticField(default_factory=list, description="IDs of research gaps this direction addresses.")
-
-class GeneratedDirectionsOutput(BaseModel):
-    directions: List[ResearchDirection] = PydanticField(description="List of generated research directions.")
-    summary: Optional[str] = PydanticField(default=None, description="Summary of the generated directions.")
-
+# --- Output Model Definitions --- MOVED TO operation_models.py ---
 
 # --- PhD Student Agent Definition ---
 
@@ -421,6 +366,9 @@ async def main_test():
     prompts_base_dir = Path(__file__).resolve().parent / "prompts"
 
     # Mock dependencies
+    # Bring ChromaQuerySummary from the new location for the mock summaries
+    from app.models.operation_models import ChromaQuerySummary 
+
     class MockChromaDBService: # This will now act as a mock CollectionManager
         def get_research_collection(self, session_id: str):
             if session_id == "test_session_123":

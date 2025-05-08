@@ -1,10 +1,11 @@
-\
 from typing import Dict, Any, Optional, List
 import traceback
 
 from ..graph_state import GraphState, MAX_RETRIES # MAX_RETRIES is used in global_error_handler
 from backend.app.models.message_models import AgentMessage, PerformativeType
-from backend.app.utils.logging_utils import get_logger
+from app.utils.logging_utils import get_logger
+from langgraph.graph.message import add_messages
+from langgraph.graph import END # Added import for END
 
 logger = get_logger(__name__)
 
@@ -44,7 +45,7 @@ async def prepare_final_output_node(state: GraphState) -> Dict[str, Any]:
         }
 
         summary_message_content = {"status": "Research workflow completed successfully.", "session_id": session_id, "final_directions_count": len(final_directions_output.get("directions", [])) if final_directions_output else 0, "total_iterations": iteration_count}
-        final_agent_message = AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_COMPLETION, content=summary_message_content)
+        final_agent_message = AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_completion", content=summary_message_content)
         final_event = {"event_type": "FinalOutputReady", "details": summary_message_content}
         current_events = state.get("last_events", [])
         updated_events = current_events + [final_event]
@@ -65,7 +66,7 @@ async def prepare_final_output_node(state: GraphState) -> Dict[str, Any]:
             "error_source_node": node_name,
             "error_details": traceback.format_exc(),
             "user_facing_report_data": {"status": "error_in_final_reporting", "error_message": str(e)},
-            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.ERROR_REPORT, content={"error": str(e)})]),
+            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="error_report", content={"error": str(e)})]),
             "workflow_outcome": "error_in_finalization"
         }
 
@@ -81,31 +82,61 @@ async def global_error_handler_node(state: GraphState) -> Dict[str, Any]:
     
     logger.info(f"Handling error from node: {source_node}. Message: {error_message}. Retries: {current_retries}")
 
-    recovery_strategy = "TERMINATE_SAFELY"
+    # Default to terminating
+    next_node_or_end = END
+    state_update = {}
+    
     if current_retries < MAX_RETRIES:
         logger.info(f"Attempting retry {current_retries + 1}/{MAX_RETRIES} for node {source_node}.")
-        recovery_strategy = "RETRY_NODE"
         retry_attempts_map[source_node] = current_retries + 1
+        # Clear error state for retry and return the name of the node that failed
+        state_update = {"error_message": None, "error_source_node": None, "error_details": None}
+        next_node_or_end = source_node # Return the node name to retry
     else:
         logger.warning(f"Max retries ({MAX_RETRIES}) reached for node {source_node}. Terminating.")
-        recovery_strategy = "TERMINATE_SAFELY"
+        next_node_or_end = END # Explicitly END
+        state_update = {} # No state changes needed for termination via END
 
     error_report_message = AgentMessage(
         conversation_id=session_id,
         sender_agent_id=node_name,
-        performative=PerformativeType.ERROR_REPORT,
-        content={"failed_node": source_node, "error_message": error_message, "chosen_strategy": recovery_strategy, "retries_attempted": retry_attempts_map.get(source_node, 0)}
+        performative="error_report",
+        content={ # Simplified content for clarity
+            "failed_node": source_node, 
+            "error_message": error_message, 
+            "retries_attempted": retry_attempts_map.get(source_node, 0),
+            "final_decision": "RETRY" if next_node_or_end != END else "TERMINATE"
+        }
     )
     
-    error_state_update = {}
-    if recovery_strategy == "RETRY_NODE":
-        error_state_update = {"error_message": None, "error_source_node": None, "error_details": None}
-
-    return {
-        "recovery_strategy_decision": recovery_strategy,
+    # Merge state updates with required fields
+    final_state_update = {
         "retry_attempts": retry_attempts_map,
-        "messages": [error_report_message],
-        **error_state_update
+        "messages": add_messages(state.get("messages", []), [error_report_message]),
+        **state_update 
+    }
+
+    # If retrying, return the node name; otherwise, return the state update for END
+    if next_node_or_end != END:
+        # When returning a node name, LangGraph expects only that name
+        # We need to ensure the state updates are applied *before* routing
+        # This might require returning the state update dictionary *and* relying on conditional edges
+        # Let's stick to the conditional edge approach and simplify the return here
+        # Revert: Returning node name directly isn't the standard way with conditional edges
+        pass # Keep state update logic below
+
+    # Revert to previous logic: Let conditional edges handle routing
+    recovery_strategy = "RETRY_NODE" if current_retries < MAX_RETRIES else "TERMINATE_SAFELY"
+    
+    if recovery_strategy == "RETRY_NODE":
+        state_update = {"error_message": None, "error_source_node": None, "error_details": None}
+
+    # Always return the dictionary to update state
+    return {
+        "recovery_strategy_decision": recovery_strategy, # Keep decision for conditional edge
+        "retry_attempts": retry_attempts_map,
+        "messages": add_messages(state.get("messages", []), [error_report_message]),
+        **state_update
     }
 
 async def resolve_conflict_node(state: GraphState) -> Dict[str, Any]:
@@ -134,7 +165,7 @@ async def resolve_conflict_node(state: GraphState) -> Dict[str, Any]:
             "resolved_output": resolved_data,
             "last_events": [resolution_event],
             "error_message": None, "error_source_node": None, "error_details": None,
-            "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_RESULT, content={"status": "conflict_resolved", "resolution_strategy": "Simulated:PickFirstOrFallback"})])
+            "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_result", content={"status": "conflict_resolved", "resolution_strategy": "Simulated:PickFirstOrFallback"})])
         }
     except Exception as e:
         logger.error(f"!!! ERROR in {node_name} during conflict resolution: {e} !!!", exc_info=True)
@@ -143,5 +174,5 @@ async def resolve_conflict_node(state: GraphState) -> Dict[str, Any]:
             "error_source_node": node_name,
             "error_details": traceback.format_exc(),
             "conflict_detected": True, # Keep flag set
-            "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.ERROR_REPORT, content={"error": f"Failed to resolve conflict: {e}"})])
+            "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="error_report", content={"error": f"Failed to resolve conflict: {e}"})])
         }

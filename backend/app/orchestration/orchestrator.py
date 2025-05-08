@@ -3,13 +3,14 @@ import uuid
 import traceback
 import asyncio
 import functools # Added for functools.partial
+import logging # Import logging
 
 from langgraph.graph import StateGraph, END, START
 from langgraph.graph.message import add_messages
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.types import Send
 
-from backend.app.models.message_models import AgentMessage, PerformativeType
+from app.models.message_models import AgentMessage, PerformativeType
 
 # Import from new modules
 from .graph_state import GraphState, MAX_ITERATIONS_REFINE, MAX_RETRIES
@@ -41,19 +42,49 @@ from .nodes.utility_nodes import (
 )
 
 # Agent and Service Imports (These will remain as they are specific to the orchestrator's dependencies)
-from backend.app.agents.phd_agent import PhDAgent, FormulatedQueriesOutput, AssessedPaperRelevance, LiteratureAnalysisOutput, IdentifiedGapsOutput, GeneratedDirectionsOutput
-from backend.app.agents.postdoc_agent import PostDocAgent 
+from backend.app.agents.phd_agent import PhDAgent
+from backend.app.agents.postdoc_agent import PostDocAgent
 from backend.app.services.arxiv_service import ArxivService
 from backend.app.services.pdf_processor import PyPDF2Processor 
-from backend.app.services.ingestion_service import IngestionService 
-from backend.app.services.vector_db_client import VectorDBClient 
+from backend.app.services.ingestion_service import IngestionService
+from backend.app.services.vector_db_client import VectorDBClient
 
-# --- Graph State Definition and Constants are REMOVED (imported from graph_state.py) ---
+# Import Pydantic models from the new location
+from backend.app.models.operation_models import (
+    FormulatedQueriesOutput,
+    PaperRelevanceAssessment, # Corrected name for AssessedPaperRelevance
+    LiteratureAnalysisOutput,
+    IdentifiedGapsOutput,
+    GeneratedDirectionsOutput,
+    PostDocEvaluationOutput # Assuming this might be needed here too eventually
+)
 
-# --- Placeholder Node Functions are REMOVED (original simple print ones) ---
-# The detailed class methods will be moved next into their own modules.
+# Define the explicit list of nodes that can be retried
+RETRYABLE_NODES = [
+    "initializing", "planning", "searching",
+    "score_paper_relevance", "create_initial_shortlist", "request_shortlist_review",
+    "processing_papers", "literature_analysis",
+    "identifying_gaps", "generating_directions",
+    "evaluate_research_directions", "refine_directions",
+    "presenting_final_directions",
+    "resolve_conflict"
+    # Add any other nodes that might route to the error handler and need retrying
+]
 
-# --- Conditional Edge Functions are REMOVED (imported from conditional_edges.py) ---
+def route_after_error_handler(state: GraphState) -> str:
+    """Determines the next node after the error handler runs."""
+    recovery_decision = state.get("recovery_strategy_decision", "TERMINATE_SAFELY")
+    if recovery_decision == "RETRY_NODE":
+        source_node = state.get("error_source_node")
+        if source_node in RETRYABLE_NODES:
+            print(f"[Router] Retrying node: {source_node}")
+            return source_node
+        else:
+            print(f"[Router] Error: Unknown source node '{source_node}' for retry. Terminating.")
+            return END
+    else:
+        print("[Router] Terminating workflow safely after error.")
+        return END
 
 class ResearchOrchestrator:
     def __init__(self, 
@@ -86,14 +117,14 @@ class ResearchOrchestrator:
         # Analysis, Shortlisting, Review, Processing, Ingestion
         self.workflow.add_node("score_paper_relevance", functools.partial(score_paper_relevance_node, phd_agent=self.phd_agent))
         self.workflow.add_node("create_initial_shortlist", create_initial_shortlist_node)
-        self.workflow.add_node("request_shortlist_review", functools.partial(request_shortlist_review_node, graph_checkpointer=self.graph_checkpointer))
+        self.workflow.add_node("request_shortlist_review", request_shortlist_review_node)
         self.workflow.add_node("processing_papers", functools.partial(process_and_ingest_papers_node, pdf_processor_service=self.pdf_processor_service, ingestion_service=self.ingestion_service))
         self.workflow.add_node("literature_analysis", functools.partial(perform_literature_analysis_node, phd_agent=self.phd_agent, vector_db_client=self.vector_db_client))
         
         # Refinement Loop Nodes
         self.workflow.add_node("identifying_gaps", functools.partial(identify_research_gaps_node, phd_agent=self.phd_agent))
         self.workflow.add_node("generating_directions", functools.partial(generate_research_directions_node, phd_agent=self.phd_agent))
-        self.workflow.add_node("evaluate_research_directions", functools.partial(evaluate_research_directions_node, postdoc_agent=self.postdoc_agent, graph_checkpointer=self.graph_checkpointer))
+        self.workflow.add_node("evaluate_research_directions", functools.partial(evaluate_research_directions_node, postdoc_agent=self.postdoc_agent))
         self.workflow.add_node("refine_directions", functools.partial(refine_directions_based_on_assessment_node, phd_agent=self.phd_agent))
         
         # Final Output and Utility Nodes
@@ -146,7 +177,7 @@ class ResearchOrchestrator:
         self.workflow.add_conditional_edges("evaluate_research_directions", check_for_errors, { "error_found": "global_error_handler", "no_error": "refine_directions" })
         self.workflow.add_conditional_edges("refine_directions", check_for_errors, { "error_found": "global_error_handler", "no_error": "check_refinement_loop_condition" })
         self.workflow.add_conditional_edges("check_refinement_loop_condition", lambda x: x, {"evaluate_research_directions": "evaluate_research_directions", "presenting_final_directions": "presenting_final_directions" })
-        self.workflow.add_conditional_edges("global_error_handler", lambda state: state.get("recovery_strategy_decision", "TERMINATE_SAFELY"), { "RETRY_NODE": lambda state: state.get("error_source_node", END), "TERMINATE_SAFELY": END, })
+        self.workflow.add_conditional_edges("global_error_handler", route_after_error_handler, {**{node_name: node_name for node_name in RETRYABLE_NODES}, END: END})
 
     # ... (invoke, ainvoke, stream, get_graph_state, update_graph_state, get_graph_visualization methods remain the same) ...
 

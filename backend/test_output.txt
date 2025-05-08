@@ -1,0 +1,673 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.9, pytest-8.3.5, pluggy-1.5.0 -- /media/szilac/SSD_sams/work2/researchAIde_new/backend/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /media/szilac/SSD_sams/work2/researchAIde_new/backend
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.9.0, mock-3.14.0, langsmith-0.3.42, asyncio-0.26.0, dotenv-0.5.2
+asyncio: mode=auto, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 85 items
+
+tests/integration/orchestration/test_research_orchestrator_flows.py::test_orchestrator_initialization_and_graph_compilation PASSED [  1%]
+tests/integration/orchestration/test_research_orchestrator_flows.py::test_orchestrator_simple_flow_invocation PASSED [  2%]
+tests/integration/test_google_provider.py::test_google_provider_generate_success PASSED [  3%]
+tests/integration/test_google_provider.py::test_google_provider_generate_blocked_content PASSED [  4%]
+tests/integration/test_google_provider.py::test_google_provider_generate_non_retryable_error PASSED [  5%]
+tests/integration/test_google_provider.py::test_google_provider_generate_cache_hit PASSED [  7%]
+tests/integration/test_google_provider.py::test_google_provider_real_api_connection PASSED [  8%]
+tests/integration/test_ingestion_service_integration.py::test_ingest_pdf_document_pipeline PASSED [  9%]
+tests/integration/test_papers_api.py::test_search_papers_success PASSED  [ 10%]
+tests/integration/test_papers_api.py::test_get_paper_details_success PASSED [ 11%]
+tests/integration/test_papers_api.py::test_search_papers_empty_query PASSED [ 12%]
+tests/integration/test_papers_api.py::test_get_paper_details_not_found PASSED [ 14%]
+tests/integration/test_pdf_api.py::test_process_pdf_endpoint_success PASSED [ 15%]
+tests/integration/test_pdf_api.py::test_process_pdf_endpoint_invalid_file_type PASSED [ 16%]
+tests/integration/test_pdf_api.py::test_process_pdf_endpoint_no_file PASSED [ 17%]
+tests/scenario/test_basic_research_scenario.py::test_basic_scenario_placeholder PASSED [ 18%]
+tests/test_main.py::test_health_check PASSED                             [ 20%]
+tests/unit/agents/test_phd_agent.py::test_formulate_search_queries_live PASSED [ 21%]
+tests/unit/agents/test_phd_agent.py::test_phd_agent_process_simple_response FAILED [ 22%]
+tests/unit/orchestration/test_orchestrator_nodes.py::test_orchestrator_node_placeholder PASSED [ 23%]
+tests/unit/services/test_arxiv_service.py::test_search_papers_success PASSED [ 24%]
+tests/unit/services/test_arxiv_service.py::test_get_paper_details_success PASSED [ 25%]
+tests/unit/services/test_arxiv_service.py::test_get_paper_details_not_found PASSED [ 27%]
+tests/unit/services/test_chunking_service.py::test_chunk_fixed_size_basic PASSED [ 28%]
+tests/unit/services/test_chunking_service.py::test_chunk_fixed_size_no_overlap PASSED [ 29%]
+tests/unit/services/test_chunking_service.py::test_chunk_fixed_size_short_text PASSED [ 30%]
+tests/unit/services/test_chunking_service.py::test_chunk_fixed_size_exact_multiple_step PASSED [ 31%]
+tests/unit/services/test_chunking_service.py::test_chunk_fixed_size_exact_multiple_chunk_size PASSED [ 32%]
+tests/unit/services/test_chunking_service.py::test_chunk_fixed_size_large_overlap PASSED [ 34%]
+tests/unit/services/test_chunking_service.py::test_chunk_fixed_size_invalid_chunk_size PASSED [ 35%]
+tests/unit/services/test_chunking_service.py::test_chunk_fixed_size_invalid_overlap PASSED [ 36%]
+tests/unit/services/test_chunking_service.py::test_chunk_fixed_size_empty_string PASSED [ 37%]
+tests/unit/services/test_collection_manager.py::test_init_success PASSED [ 38%]
+tests/unit/services/test_collection_manager.py::test_init_requires_db_client PASSED [ 40%]
+tests/unit/services/test_collection_manager.py::test_generate_collection_name PASSED [ 41%]
+tests/unit/services/test_collection_manager.py::test_create_research_collection_success PASSED [ 42%]
+tests/unit/services/test_collection_manager.py::test_create_research_collection_no_topic PASSED [ 43%]
+tests/unit/services/test_collection_manager.py::test_create_research_collection_missing_args PASSED [ 44%]
+tests/unit/services/test_collection_manager.py::test_create_research_collection_db_failure PASSED [ 45%]
+tests/unit/services/test_collection_manager.py::test_create_research_collection_metadata_mismatch FAILED [ 47%]
+tests/unit/services/test_collection_manager.py::test_get_research_collection_success PASSED [ 48%]
+tests/unit/services/test_collection_manager.py::test_get_research_collection_not_found PASSED [ 49%]
+tests/unit/services/test_collection_manager.py::test_get_research_collection_missing_args PASSED [ 50%]
+tests/unit/services/test_collection_manager.py::test_delete_research_collection_success PASSED [ 51%]
+tests/unit/services/test_collection_manager.py::test_delete_research_collection_failure PASSED [ 52%]
+tests/unit/services/test_collection_manager.py::test_delete_research_collection_missing_args PASSED [ 54%]
+tests/unit/services/test_collection_manager.py::test_validate_collection_schema_placeholder FAILED [ 55%]
+tests/unit/services/test_collection_manager.py::test_migrate_collection_schema_placeholder FAILED [ 56%]
+tests/unit/services/test_ingestion_service.py::test_ingest_document_success FAILED [ 57%]
+tests/unit/services/test_ingestion_service.py::test_ingest_document_custom_chunk_params PASSED [ 58%]
+tests/unit/services/test_ingestion_service.py::test_ingest_document_collection_not_found PASSED [ 60%]
+tests/unit/services/test_ingestion_service.py::test_ingest_document_chunking_error PASSED [ 61%]
+tests/unit/services/test_ingestion_service.py::test_ingest_document_no_chunks PASSED [ 62%]
+tests/unit/services/test_ingestion_service.py::test_ingest_document_embedding_error PASSED [ 63%]
+tests/unit/services/test_ingestion_service.py::test_ingest_document_embedding_mismatch PASSED [ 64%]
+tests/unit/services/test_ingestion_service.py::test_ingest_document_db_add_failure PASSED [ 65%]
+tests/unit/services/test_search_service.py::test_semantic_search_success PASSED [ 67%]
+tests/unit/services/test_search_service.py::test_semantic_search_no_collection_name PASSED [ 68%]
+tests/unit/services/test_search_service.py::test_semantic_search_collection_not_found PASSED [ 69%]
+tests/unit/services/test_search_service.py::test_semantic_search_no_results_from_db PASSED [ 70%]
+tests/unit/services/test_search_service.py::test_semantic_search_embedding_error PASSED [ 71%]
+tests/unit/services/test_search_service.py::test_semantic_search_db_query_error PASSED [ 72%]
+tests/unit/services/test_search_service.py::test_semantic_search_results_missing_fields PASSED [ 74%]
+tests/unit/services/test_search_service.py::test_semantic_search_sorting PASSED [ 75%]
+tests/unit/services/test_vector_db_client.py::test_initialization_success PASSED [ 76%]
+tests/unit/services/test_vector_db_client.py::test_initialization_failure PASSED [ 77%]
+tests/unit/services/test_vector_db_client.py::test_list_collections_success PASSED [ 78%]
+tests/unit/services/test_vector_db_client.py::test_list_collections_failure PASSED [ 80%]
+tests/unit/services/test_vector_db_client.py::test_get_or_create_collection_success PASSED [ 81%]
+tests/unit/services/test_vector_db_client.py::test_get_or_create_collection_failure PASSED [ 82%]
+tests/unit/services/test_vector_db_client.py::test_delete_collection_success FAILED [ 83%]
+tests/unit/services/test_vector_db_client.py::test_delete_collection_failure_still_exists FAILED [ 84%]
+tests/unit/services/test_vector_db_client.py::test_delete_collection_api_error FAILED [ 85%]
+tests/unit/services/test_vector_db_client.py::test_get_collection_success PASSED [ 87%]
+tests/unit/services/test_vector_db_client.py::test_get_collection_not_found PASSED [ 88%]
+tests/unit/services/test_vector_db_client.py::test_get_collection_count_success PASSED [ 89%]
+tests/unit/services/test_vector_db_client.py::test_get_collection_count_collection_not_found PASSED [ 90%]
+tests/unit/services/test_vector_db_client.py::test_get_collection_count_count_error PASSED [ 91%]
+tests/unit/services/test_vector_db_client.py::test_add_to_collection_success PASSED [ 92%]
+tests/unit/services/test_vector_db_client.py::test_add_to_collection_collection_not_found PASSED [ 94%]
+tests/unit/services/test_vector_db_client.py::test_add_to_collection_add_error PASSED [ 95%]
+tests/unit/services/test_vector_db_client.py::test_query_collection_success FAILED [ 96%]
+tests/unit/services/test_vector_db_client.py::test_query_collection_collection_not_found PASSED [ 97%]
+tests/unit/services/test_vector_db_client.py::test_query_collection_query_error PASSED [ 98%]
+tests/unit/services/test_vector_db_client.py::test_query_collection_no_query_input PASSED [100%]
+
+=================================== FAILURES ===================================
+____________________ test_phd_agent_process_simple_response ____________________
+
+model = 'mock_model'
+
+    def infer_model(model: Model | KnownModelName | str) -> Model:
+        """Infer the model from the name."""
+        if isinstance(model, Model):
+            return model
+        elif model == 'test':
+            from .test import TestModel
+    
+            return TestModel()
+    
+        try:
+>           provider, model_name = model.split(':', maxsplit=1)
+E           ValueError: not enough values to unpack (expected 2, got 1)
+
+.venv/lib/python3.10/site-packages/pydantic_ai/models/__init__.py:438: ValueError
+
+During handling of the above exception, another exception occurred:
+
+phd_agent_deps = PhDAgentDependencies(prompt_manager=<backend.app.services.llm.prompt_manager.PromptManager object at 0x760d2a39a620>, arxiv_service=None, chromadb_service=None, llm_manager=None)
+mock_simple_ai_response = AIMessage(content='This is a default mock AI response.', additional_kwargs={}, response_metadata={}, id='mock_ai_msg_1e36eea9-de32-4918-a5b3-db839d4f099e')
+
+    def test_phd_agent_process_simple_response(phd_agent_deps, mock_simple_ai_response):
+        """Tests a hypothetical _process_llm_response method with a mocked simple AIMessage."""
+        print("\n--- Running test_phd_agent_process_simple_response ---")
+        # 1. Setup
+>       agent = PhDAgent(dependencies=phd_agent_deps, llm_model_name="mock_model") # Using a mock model name
+
+tests/unit/agents/test_phd_agent.py:110: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/phd_agent.py:58: in __init__
+    self._query_formulation_agent = Agent(
+.venv/lib/python3.10/site-packages/pydantic_ai/agent.py:266: in __init__
+    self.model = models.infer_model(model)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+model = 'mock_model'
+
+    def infer_model(model: Model | KnownModelName | str) -> Model:
+        """Infer the model from the name."""
+        if isinstance(model, Model):
+            return model
+        elif model == 'test':
+            from .test import TestModel
+    
+            return TestModel()
+    
+        try:
+            provider, model_name = model.split(':', maxsplit=1)
+        except ValueError:
+            model_name = model
+            # TODO(Marcelo): We should deprecate this way.
+            if model_name.startswith(('gpt', 'o1', 'o3')):
+                provider = 'openai'
+            elif model_name.startswith('claude'):
+                provider = 'anthropic'
+            elif model_name.startswith('gemini'):
+                provider = 'google-gla'
+            else:
+>               raise UserError(f'Unknown model: {model}')
+E               pydantic_ai.exceptions.UserError: Unknown model: mock_model
+
+.venv/lib/python3.10/site-packages/pydantic_ai/models/__init__.py:449: UserError
+----------------------------- Captured stdout call -----------------------------
+
+--- Running test_phd_agent_process_simple_response ---
+______________ test_create_research_collection_metadata_mismatch _______________
+
+collection_manager = <app.services.collection_manager.CollectionManager object at 0x760d2afe5f30>
+mock_vector_db_client = <MagicMock spec='VectorDBClient' id='129798927969888'>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x760d44264c10>
+
+    def test_create_research_collection_metadata_mismatch(collection_manager, mock_vector_db_client, caplog):
+        """Tests that a warning is logged if metadata doesn't match after creation (optional check)."""
+        session_id = "sess_meta_mismatch"
+        research_area = "Climate Tech"
+        expected_name = collection_manager._generate_collection_name(session_id)
+        expected_metadata = {
+            "session_id": session_id,
+            "research_area": research_area,
+            "hpf_collection_type": "research_session"
+        }
+    
+        mock_collection = MagicMock(spec=Collection)
+        mock_collection.name = expected_name
+        mock_collection.id = "mock_coll_id_789"
+        # Simulate incorrect metadata returned by DB
+        mock_collection.metadata = {"session_id": session_id, "research_area": "WRONG AREA"}
+        mock_vector_db_client.get_or_create_collection.return_value = mock_collection
+    
+        with caplog.at_level(logging.WARNING):
+            collection = collection_manager.create_research_collection(
+                session_id=session_id,
+                research_area=research_area
+            )
+    
+        assert collection == mock_collection # Still returns the collection
+>       assert "metadata mismatch for 'research_area'" in caplog.text
+E       assert "metadata mismatch for 'research_area'" in "WARNING  app.services.collection_manager:collection_manager.py:129 Collection 'research_session_sess_meta_mismatch' metadata mismatch for key 'hpf_collection_type'. Expected (if created): 'research_session', Actual in DB: 'None'\nWARNING  app.services.collection_manager:collection_manager.py:129 Collection 'research_session_sess_meta_mismatch' metadata mismatch for key 'research_area'. Expected (if created): 'Climate Tech', Actual in DB: 'WRONG AREA'\n"
+E        +  where "WARNING  app.services.collection_manager:collection_manager.py:129 Collection 'research_session_sess_meta_mismatch' metadata mismatch for key 'hpf_collection_type'. Expected (if created): 'research_session', Actual in DB: 'None'\nWARNING  app.services.collection_manager:collection_manager.py:129 Collection 'research_session_sess_meta_mismatch' metadata mismatch for key 'research_area'. Expected (if created): 'Climate Tech', Actual in DB: 'WRONG AREA'\n" = <_pytest.logging.LogCaptureFixture object at 0x760d44264c10>.text
+
+tests/unit/services/test_collection_manager.py:168: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.collection_manager:collection_manager.py:129 Collection 'research_session_sess_meta_mismatch' metadata mismatch for key 'hpf_collection_type'. Expected (if created): 'research_session', Actual in DB: 'None'
+WARNING  app.services.collection_manager:collection_manager.py:129 Collection 'research_session_sess_meta_mismatch' metadata mismatch for key 'research_area'. Expected (if created): 'Climate Tech', Actual in DB: 'WRONG AREA'
+_________________ test_validate_collection_schema_placeholder __________________
+
+collection_manager = <app.services.collection_manager.CollectionManager object at 0x760d2af9c8b0>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x760d2af9c940>
+
+    def test_validate_collection_schema_placeholder(collection_manager, caplog):
+        """Tests the placeholder schema validation method."""
+        mock_collection = MagicMock(spec=Collection)
+        with caplog.at_level(logging.WARNING):
+            result = collection_manager.validate_collection_schema(mock_collection)
+>       assert result is True # Placeholder currently returns True
+E       assert False is True
+
+tests/unit/services/test_collection_manager.py:239: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.collection_manager:collection_manager.py:216 CollectionManager.validate_collection_schema is a placeholder and not fully implemented.
+WARNING  app.services.collection_manager:collection_manager.py:223 Validation failed for collection '<MagicMock name='mock.name' id='129798927876640'>': Missing required metadata key 'session_id'.
+__________________ test_migrate_collection_schema_placeholder __________________
+
+collection_manager = <app.services.collection_manager.CollectionManager object at 0x760d2af8fb20>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x760d2af8d8a0>
+
+    def test_migrate_collection_schema_placeholder(collection_manager, caplog):
+        """Tests the placeholder schema migration method."""
+        with caplog.at_level(logging.WARNING):
+            collection_manager.migrate_collection_schema("some_collection_name")
+>       assert "migrate_collection_schema is not yet implemented." in caplog.text
+E       assert 'migrate_collection_schema is not yet implemented.' in "WARNING  app.services.collection_manager:collection_manager.py:237 CollectionManager.migrate_collection_schema for 'some_collection_name' is a placeholder and not implemented.\n"
+E        +  where "WARNING  app.services.collection_manager:collection_manager.py:237 CollectionManager.migrate_collection_schema for 'some_collection_name' is a placeholder and not implemented.\n" = <_pytest.logging.LogCaptureFixture object at 0x760d2af8d8a0>.text
+
+tests/unit/services/test_collection_manager.py:246: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.collection_manager:collection_manager.py:237 CollectionManager.migrate_collection_schema for 'some_collection_name' is a placeholder and not implemented.
+_________________________ test_ingest_document_success _________________________
+
+self = <MagicMock name='mock.add_to_collection' id='129798927779776'>, args = ()
+kwargs = {'collection_name': 'research_session_test_sess_1', 'documents': ['This is the document text.', ' It is sufficiently long for chunking.'], 'embeddings': [[0.1, 0.2], [0.3, 0.4]], 'ids': ['doc_123_chunk_0', 'doc_123_chunk_1'], ...}
+expected = call(collection_name='research_session_test_sess_1', ids=['doc_123_chunk_0', 'doc_123_chunk_1'], documents=['This is t...ocument_id': 'doc_123', 'session_id': 'test_sess_1', 'source': 'test.pdf', 'author': 'Test Author', 'chunk_index': 1}])
+actual = call(collection_name='research_session_test_sess_1', ids=['doc_123_chunk_0', 'doc_123_chunk_1'], documents=['This is t...or': 'Test Author', 'document_id': 'doc_123', 'session_id': 'test_sess_1', 'chunk_index': 1, 'chunk_text_length': 38}])
+_error_message = <function NonCallableMock.assert_called_with.<locals>._error_message at 0x760d2afc3490>
+cause = None
+
+    def assert_called_with(self, /, *args, **kwargs):
+        """assert that the last call was made with the specified arguments.
+    
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the last call to the mock."""
+        if self.call_args is None:
+            expected = self._format_mock_call_signature(args, kwargs)
+            actual = 'not called.'
+            error_message = ('expected call not found.\nExpected: %s\nActual: %s'
+                    % (expected, actual))
+            raise AssertionError(error_message)
+    
+        def _error_message():
+            msg = self._format_mock_failure_message(args, kwargs)
+            return msg
+        expected = self._call_matcher(_Call((args, kwargs), two=True))
+        actual = self._call_matcher(self.call_args)
+        if actual != expected:
+            cause = expected if isinstance(expected, Exception) else None
+>           raise AssertionError(_error_message()) from cause
+E           AssertionError: expected call not found.
+E           Expected: add_to_collection(collection_name='research_session_test_sess_1', ids=['doc_123_chunk_0', 'doc_123_chunk_1'], documents=['This is the document text.', ' It is sufficiently long for chunking.'], embeddings=[[0.1, 0.2], [0.3, 0.4]], metadatas=[{'document_id': 'doc_123', 'session_id': 'test_sess_1', 'source': 'test.pdf', 'author': 'Test Author', 'chunk_index': 0}, {'document_id': 'doc_123', 'session_id': 'test_sess_1', 'source': 'test.pdf', 'author': 'Test Author', 'chunk_index': 1}])
+E           Actual: add_to_collection(collection_name='research_session_test_sess_1', ids=['doc_123_chunk_0', 'doc_123_chunk_1'], documents=['This is the document text.', ' It is sufficiently long for chunking.'], embeddings=[[0.1, 0.2], [0.3, 0.4]], metadatas=[{'source': 'test.pdf', 'author': 'Test Author', 'document_id': 'doc_123', 'session_id': 'test_sess_1', 'chunk_index': 0, 'chunk_text_length': 26}, {'source': 'test.pdf', 'author': 'Test Author', 'document_id': 'doc_123', 'session_id': 'test_sess_1', 'chunk_index': 1, 'chunk_text_length': 38}])
+
+/home/szilac/anaconda3/lib/python3.10/unittest/mock.py:929: AssertionError
+
+During handling of the above exception, another exception occurred:
+
+self = <MagicMock name='mock.add_to_collection' id='129798927779776'>, args = ()
+kwargs = {'collection_name': 'research_session_test_sess_1', 'documents': ['This is the document text.', ' It is sufficiently long for chunking.'], 'embeddings': [[0.1, 0.2], [0.3, 0.4]], 'ids': ['doc_123_chunk_0', 'doc_123_chunk_1'], ...}
+
+    def assert_called_once_with(self, /, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+            raise AssertionError(msg)
+>       return self.assert_called_with(*args, **kwargs)
+E       AssertionError: expected call not found.
+E       Expected: add_to_collection(collection_name='research_session_test_sess_1', ids=['doc_123_chunk_0', 'doc_123_chunk_1'], documents=['This is the document text.', ' It is sufficiently long for chunking.'], embeddings=[[0.1, 0.2], [0.3, 0.4]], metadatas=[{'document_id': 'doc_123', 'session_id': 'test_sess_1', 'source': 'test.pdf', 'author': 'Test Author', 'chunk_index': 0}, {'document_id': 'doc_123', 'session_id': 'test_sess_1', 'source': 'test.pdf', 'author': 'Test Author', 'chunk_index': 1}])
+E       Actual: add_to_collection(collection_name='research_session_test_sess_1', ids=['doc_123_chunk_0', 'doc_123_chunk_1'], documents=['This is the document text.', ' It is sufficiently long for chunking.'], embeddings=[[0.1, 0.2], [0.3, 0.4]], metadatas=[{'source': 'test.pdf', 'author': 'Test Author', 'document_id': 'doc_123', 'session_id': 'test_sess_1', 'chunk_index': 0, 'chunk_text_length': 26}, {'source': 'test.pdf', 'author': 'Test Author', 'document_id': 'doc_123', 'session_id': 'test_sess_1', 'chunk_index': 1, 'chunk_text_length': 38}])
+E       
+E       pytest introspection follows:
+E       
+E       Kwargs:
+E       assert {'collection_...hunk_1'], ...} == {'collection_...hunk_1'], ...}
+E         
+E         Omitting 4 identical items, use -vv to show
+E         Differing items:
+E         {'metadatas': [{'author': 'Test Author', 'chunk_index': 0, 'chunk_text_length': 26, 'document_id': 'doc_123', ...}, {'author': 'Test Author', 'chunk_index': 1, 'chunk_text_length': 38, 'document_id': 'doc_123', ...}]} != {'metadatas': [{'author': 'Test Author', 'chunk_index': 0, 'document_id': 'doc_123', 'session_id': 'test_sess_1', ...}, {'author': 'Test Author', 'chunk_index': 1, 'document_id': 'doc_123', 'session_id': 'test_sess_1', ...}]}
+E         
+E         Full diff:
+E           {...
+E         
+E         ...Full output truncated (38 lines hidden), use '-vv' to show
+
+/home/szilac/anaconda3/lib/python3.10/unittest/mock.py:941: AssertionError
+
+During handling of the above exception, another exception occurred:
+
+mock_chunk_func = <MagicMock name='chunk_text_fixed_size' id='129799653524000'>
+ingestion_service = <app.services.ingestion_service.IngestionService object at 0x760d562ba590>
+mock_collection_manager = <MagicMock spec='CollectionManager' id='129798927939136'>
+mock_embedding_service = <MagicMock spec='EmbeddingService' id='129799653472624'>
+mock_db_client = <MagicMock spec='VectorDBClient' id='129798927938416'>
+
+    @patch('app.services.ingestion_service.chunk_text_fixed_size')
+    def test_ingest_document_success(mock_chunk_func, ingestion_service, mock_collection_manager, mock_embedding_service, mock_db_client):
+        """Tests the successful ingestion path."""
+        # Arrange
+        mock_collection = MagicMock(spec=Collection)
+        mock_collection.name = COLLECTION_NAME
+        mock_collection_manager.get_research_collection.return_value = mock_collection
+        mock_chunk_func.return_value = CHUNKS # Use mock from patch argument
+        mock_embedding_service.generate_embeddings.return_value = EMBEDDINGS
+        mock_db_client.add_to_collection.return_value = True
+    
+        # Act
+        success = ingestion_service.ingest_document(
+            session_id=SESSION_ID,
+            document_id=DOC_ID,
+            document_text=DOC_TEXT,
+            document_metadata=DOC_META
+        )
+    
+        # Assert
+        assert success is True
+        mock_collection_manager.get_research_collection.assert_called_once_with(SESSION_ID)
+        mock_chunk_func.assert_called_once_with( # Use mock from patch argument
+            DOC_TEXT,
+            IngestionService.DEFAULT_CHUNK_SIZE,
+            IngestionService.DEFAULT_OVERLAP
+        )
+        mock_embedding_service.generate_embeddings.assert_called_once_with(CHUNKS)
+    
+        expected_chunk_ids = [f"{DOC_ID}_chunk_0", f"{DOC_ID}_chunk_1"]
+        expected_chunk_metas = [
+            {"document_id": DOC_ID, "session_id": SESSION_ID, "source": "test.pdf", "author": "Test Author", "chunk_index": 0},
+            {"document_id": DOC_ID, "session_id": SESSION_ID, "source": "test.pdf", "author": "Test Author", "chunk_index": 1}
+        ]
+>       mock_db_client.add_to_collection.assert_called_once_with(
+            collection_name=COLLECTION_NAME,
+            ids=expected_chunk_ids,
+            documents=CHUNKS,
+            embeddings=EMBEDDINGS,
+            metadatas=expected_chunk_metas
+        )
+E       AssertionError: expected call not found.
+E       Expected: add_to_collection(collection_name='research_session_test_sess_1', ids=['doc_123_chunk_0', 'doc_123_chunk_1'], documents=['This is the document text.', ' It is sufficiently long for chunking.'], embeddings=[[0.1, 0.2], [0.3, 0.4]], metadatas=[{'document_id': 'doc_123', 'session_id': 'test_sess_1', 'source': 'test.pdf', 'author': 'Test Author', 'chunk_index': 0}, {'document_id': 'doc_123', 'session_id': 'test_sess_1', 'source': 'test.pdf', 'author': 'Test Author', 'chunk_index': 1}])
+E       Actual: add_to_collection(collection_name='research_session_test_sess_1', ids=['doc_123_chunk_0', 'doc_123_chunk_1'], documents=['This is the document text.', ' It is sufficiently long for chunking.'], embeddings=[[0.1, 0.2], [0.3, 0.4]], metadatas=[{'source': 'test.pdf', 'author': 'Test Author', 'document_id': 'doc_123', 'session_id': 'test_sess_1', 'chunk_index': 0, 'chunk_text_length': 26}, {'source': 'test.pdf', 'author': 'Test Author', 'document_id': 'doc_123', 'session_id': 'test_sess_1', 'chunk_index': 1, 'chunk_text_length': 38}])
+E       
+E       pytest introspection follows:
+E       
+E       Kwargs:
+E       assert {'collection_...hunk_1'], ...} == {'collection_...hunk_1'], ...}
+E         
+E         Omitting 4 identical items, use -vv to show
+E         Differing items:
+E         {'metadatas': [{'author': 'Test Author', 'chunk_index': 0, 'chunk_text_length': 26, 'document_id': 'doc_123', ...}, {'author': 'Test Author', 'chunk_index': 1, 'chunk_text_length': 38, 'document_id': 'doc_123', ...}]} != {'metadatas': [{'author': 'Test Author', 'chunk_index': 0, 'document_id': 'doc_123', 'session_id': 'test_sess_1', ...}, {'author': 'Test Author', 'chunk_index': 1, 'document_id': 'doc_123', 'session_id': 'test_sess_1', ...}]}
+E         
+E         Full diff:
+E           {...
+E         
+E         ...Full output truncated (38 lines hidden), use '-vv' to show
+
+tests/unit/services/test_ingestion_service.py:103: AssertionError
+________________________ test_delete_collection_success ________________________
+
+self = <MagicMock name='PersistentClient().get_collection' id='129799354421632'>
+args = (), kwargs = {'name': 'del_col'}
+msg = "Expected 'get_collection' to be called once. Called 0 times."
+
+    def assert_called_once_with(self, /, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'get_collection' to be called once. Called 0 times.
+
+/home/szilac/anaconda3/lib/python3.10/unittest/mock.py:940: AssertionError
+
+During handling of the above exception, another exception occurred:
+
+client_wrapper = <app.services.vector_db_client.VectorDBClient object at 0x760d4469c520>
+mock_chromadb_client = <MagicMock name='PersistentClient()' id='129799354448480'>
+
+    def test_delete_collection_success(client_wrapper, mock_chromadb_client):
+        """Tests deleting a collection successfully."""
+        # Mock delete to succeed, and subsequent get to fail (confirming deletion)
+        mock_chromadb_client.delete_collection.return_value = None # Assume void return
+        mock_chromadb_client.get_collection.side_effect = Exception("Not Found") # Simulate collection is gone
+    
+        result = client_wrapper.delete_collection("del_col")
+        assert result is True
+        mock_chromadb_client.delete_collection.assert_called_once_with(name="del_col")
+>       mock_chromadb_client.get_collection.assert_called_once_with(name="del_col") # Check confirmation
+E       AssertionError: Expected 'get_collection' to be called once. Called 0 times.
+
+tests/unit/services/test_vector_db_client.py:107: AssertionError
+_________________ test_delete_collection_failure_still_exists __________________
+
+client_wrapper = <app.services.vector_db_client.VectorDBClient object at 0x760d4464ba30>
+mock_chromadb_client = <MagicMock name='PersistentClient()' id='129799354095920'>
+
+    def test_delete_collection_failure_still_exists(client_wrapper, mock_chromadb_client):
+        """Tests deleting when collection still exists after attempt."""
+        mock_chromadb_client.delete_collection.return_value = None
+        # Mock get_collection to *return* a collection, simulating failed deletion
+        mock_chromadb_client.get_collection.return_value = MagicMock()
+    
+        result = client_wrapper.delete_collection("fail_del")
+>       assert result is False
+E       assert True is False
+
+tests/unit/services/test_vector_db_client.py:116: AssertionError
+_______________________ test_delete_collection_api_error _______________________
+
+self = <MagicMock name='PersistentClient().get_collection' id='129799352435856'>
+args = (), kwargs = {'name': 'fail_del_api'}
+msg = "Expected 'get_collection' to be called once. Called 0 times."
+
+    def assert_called_once_with(self, /, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'get_collection' to be called once. Called 0 times.
+
+/home/szilac/anaconda3/lib/python3.10/unittest/mock.py:940: AssertionError
+
+During handling of the above exception, another exception occurred:
+
+client_wrapper = <app.services.vector_db_client.VectorDBClient object at 0x760d2afdd210>
+mock_chromadb_client = <MagicMock name='PersistentClient()' id='129798927929056'>
+
+    def test_delete_collection_api_error(client_wrapper, mock_chromadb_client):
+        """Tests deleting when the delete call itself raises an exception."""
+        mock_chromadb_client.delete_collection.side_effect = Exception("Delete API error")
+        # Mock get_collection to succeed *before* the failed delete call (for the check)
+        # This case simulates the delete call failing, then the check confirming it exists
+        # Let's adjust: Assume delete raises, *then* we check. Check should confirm existence.
+        mock_chromadb_client.get_collection.return_value = MagicMock() # Collection exists before/after failed delete
+    
+        result = client_wrapper.delete_collection("fail_del_api")
+        assert result is False # Should fail because exception was caught and collection still exists
+        mock_chromadb_client.delete_collection.assert_called_once_with(name="fail_del_api")
+>       mock_chromadb_client.get_collection.assert_called_once_with(name="fail_del_api") # Check should be called
+E       AssertionError: Expected 'get_collection' to be called once. Called 0 times.
+
+tests/unit/services/test_vector_db_client.py:131: AssertionError
+________________________ test_query_collection_success _________________________
+
+self = <MagicMock name='PersistentClient().get_collection().query' id='129798924104704'>
+args = ()
+kwargs = {'include': ['metadatas', 'documents', 'distances'], 'n_results': 1, 'query_embeddings': None, 'query_texts': ['query text'], ...}
+expected = call(query_embeddings=None, query_texts=['query text'], n_results=1, where=None, where_document=None, include=['metadatas', 'documents', 'distances'])
+actual = call(query_embeddings=None, query_texts=['query text'], n_results=1, where=None, where_document=None, include=['metadatas', 'documents', 'distances', 'ids'])
+_error_message = <function NonCallableMock.assert_called_with.<locals>._error_message at 0x760d2afc3490>
+cause = None
+
+    def assert_called_with(self, /, *args, **kwargs):
+        """assert that the last call was made with the specified arguments.
+    
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the last call to the mock."""
+        if self.call_args is None:
+            expected = self._format_mock_call_signature(args, kwargs)
+            actual = 'not called.'
+            error_message = ('expected call not found.\nExpected: %s\nActual: %s'
+                    % (expected, actual))
+            raise AssertionError(error_message)
+    
+        def _error_message():
+            msg = self._format_mock_failure_message(args, kwargs)
+            return msg
+        expected = self._call_matcher(_Call((args, kwargs), two=True))
+        actual = self._call_matcher(self.call_args)
+        if actual != expected:
+            cause = expected if isinstance(expected, Exception) else None
+>           raise AssertionError(_error_message()) from cause
+E           AssertionError: expected call not found.
+E           Expected: query(query_embeddings=None, query_texts=['query text'], n_results=1, where=None, where_document=None, include=['metadatas', 'documents', 'distances'])
+E           Actual: query(query_embeddings=None, query_texts=['query text'], n_results=1, where=None, where_document=None, include=['metadatas', 'documents', 'distances', 'ids'])
+
+/home/szilac/anaconda3/lib/python3.10/unittest/mock.py:929: AssertionError
+
+During handling of the above exception, another exception occurred:
+
+self = <MagicMock name='PersistentClient().get_collection().query' id='129798924104704'>
+args = ()
+kwargs = {'include': ['metadatas', 'documents', 'distances'], 'n_results': 1, 'query_embeddings': None, 'query_texts': ['query text'], ...}
+
+    def assert_called_once_with(self, /, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+            raise AssertionError(msg)
+>       return self.assert_called_with(*args, **kwargs)
+E       AssertionError: expected call not found.
+E       Expected: query(query_embeddings=None, query_texts=['query text'], n_results=1, where=None, where_document=None, include=['metadatas', 'documents', 'distances'])
+E       Actual: query(query_embeddings=None, query_texts=['query text'], n_results=1, where=None, where_document=None, include=['metadatas', 'documents', 'distances', 'ids'])
+E       
+E       pytest introspection follows:
+E       
+E       Kwargs:
+E       assert {'include': [...y text'], ...} == {'include': [...y text'], ...}
+E         
+E         Omitting 5 identical items, use -vv to show
+E         Differing items:
+E         {'include': ['metadatas', 'documents', 'distances', 'ids']} != {'include': ['metadatas', 'documents', 'distances']}
+E         
+E         Full diff:
+E           {...
+E         
+E         ...Full output truncated (14 lines hidden), use '-vv' to show
+
+/home/szilac/anaconda3/lib/python3.10/unittest/mock.py:941: AssertionError
+
+During handling of the above exception, another exception occurred:
+
+client_wrapper = <app.services.vector_db_client.VectorDBClient object at 0x760d2a3d2d40>
+mock_chromadb_client = <MagicMock name='PersistentClient()' id='129798915295216'>
+
+    def test_query_collection_success(client_wrapper, mock_chromadb_client):
+        """Tests querying a collection successfully."""
+        mock_collection = MagicMock()
+        mock_collection.name = "query_col"
+        mock_query_results = {"ids": [["id1"]], "distances": [[0.1]], "documents": [["doc1"]]}
+        mock_collection.query.return_value = mock_query_results
+        mock_chromadb_client.get_collection.return_value = mock_collection
+    
+        query_texts = ["query text"]
+        n_results = 1
+    
+        results = client_wrapper.query_collection(
+            collection_name="query_col", query_texts=query_texts, n_results=n_results
+        )
+    
+        assert results == mock_query_results
+        mock_chromadb_client.get_collection.assert_called_once_with(name="query_col")
+>       mock_collection.query.assert_called_once_with(
+            query_embeddings=None,
+            query_texts=query_texts,
+            n_results=n_results,
+            where=None,
+            where_document=None,
+            include=["metadatas", "documents", "distances"]
+        )
+E       AssertionError: expected call not found.
+E       Expected: query(query_embeddings=None, query_texts=['query text'], n_results=1, where=None, where_document=None, include=['metadatas', 'documents', 'distances'])
+E       Actual: query(query_embeddings=None, query_texts=['query text'], n_results=1, where=None, where_document=None, include=['metadatas', 'documents', 'distances', 'ids'])
+E       
+E       pytest introspection follows:
+E       
+E       Kwargs:
+E       assert {'include': [...y text'], ...} == {'include': [...y text'], ...}
+E         
+E         Omitting 5 identical items, use -vv to show
+E         Differing items:
+E         {'include': ['metadatas', 'documents', 'distances', 'ids']} != {'include': ['metadatas', 'documents', 'distances']}
+E         
+E         Full diff:
+E           {...
+E         
+E         ...Full output truncated (14 lines hidden), use '-vv' to show
+
+tests/unit/services/test_vector_db_client.py:243: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:323
+.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:323
+.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:323
+.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:323
+.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:323
+.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:323
+  /media/szilac/SSD_sams/work2/researchAIde_new/backend/.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:323: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+.venv/lib/python3.10/site-packages/PyPDF2/__init__.py:21
+  /media/szilac/SSD_sams/work2/researchAIde_new/backend/.venv/lib/python3.10/site-packages/PyPDF2/__init__.py:21: DeprecationWarning: PyPDF2 is deprecated. Please move to the pypdf library instead.
+    warnings.warn(
+
+.venv/lib/python3.10/site-packages/torch/cuda/__init__.py:789
+  /media/szilac/SSD_sams/work2/researchAIde_new/backend/.venv/lib/python3.10/site-packages/torch/cuda/__init__.py:789: UserWarning: Can't initialize NVML
+    warnings.warn("Can't initialize NVML")
+
+.venv/lib/python3.10/site-packages/torch/cuda/__init__.py:991
+  /media/szilac/SSD_sams/work2/researchAIde_new/backend/.venv/lib/python3.10/site-packages/torch/cuda/__init__.py:991: UserWarning: CUDA initialization: Unexpected error from cudaGetDeviceCount(). Did you run some cuda functions before calling NumCudaDevices() that might have already set an error? Error 804: forward compatibility was attempted on non supported HW (Triggered internally at /pytorch/c10/cuda/CUDAFunctions.cpp:109.)
+    r = torch._C._cuda_getDeviceCount() if nvml_count < 0 else nvml_count
+
+.venv/lib/python3.10/site-packages/pydantic/fields.py:1051
+  /media/szilac/SSD_sams/work2/researchAIde_new/backend/.venv/lib/python3.10/site-packages/pydantic/fields.py:1051: PydanticDeprecatedSince20: `max_items` is deprecated and will be removed, use `max_length` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    warn('`max_items` is deprecated and will be removed, use `max_length` instead', DeprecationWarning)
+
+tests/integration/test_google_provider.py:341
+  /media/szilac/SSD_sams/work2/researchAIde_new/backend/tests/integration/test_google_provider.py:341: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration # Optional: Mark as integration test
+
+tests/integration/test_papers_api.py:17
+  /media/szilac/SSD_sams/work2/researchAIde_new/backend/tests/integration/test_papers_api.py:17: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+tests/integration/test_papers_api.py:18
+  /media/szilac/SSD_sams/work2/researchAIde_new/backend/tests/integration/test_papers_api.py:18: PytestUnknownMarkWarning: Unknown pytest.mark.external_api - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.external_api
+
+tests/integration/test_papers_api.py:51
+  /media/szilac/SSD_sams/work2/researchAIde_new/backend/tests/integration/test_papers_api.py:51: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+tests/integration/test_papers_api.py:52
+  /media/szilac/SSD_sams/work2/researchAIde_new/backend/tests/integration/test_papers_api.py:52: PytestUnknownMarkWarning: Unknown pytest.mark.external_api - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.external_api
+
+tests/integration/test_papers_api.py:90
+  /media/szilac/SSD_sams/work2/researchAIde_new/backend/tests/integration/test_papers_api.py:90: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration # Doesn't hit external API, but tests endpoint logic
+
+tests/integration/test_papers_api.py:105
+  /media/szilac/SSD_sams/work2/researchAIde_new/backend/tests/integration/test_papers_api.py:105: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+tests/integration/test_papers_api.py:106
+  /media/szilac/SSD_sams/work2/researchAIde_new/backend/tests/integration/test_papers_api.py:106: PytestUnknownMarkWarning: Unknown pytest.mark.external_api - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.external_api
+
+tests/integration/test_ingestion_service_integration.py: 182 warnings
+  /media/szilac/SSD_sams/work2/researchAIde_new/backend/.venv/lib/python3.10/site-packages/chromadb/types.py:144: PydanticDeprecatedSince211: Accessing the 'model_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    return self.model_fields  # pydantic 2.x
+
+tests/integration/test_papers_api.py::test_search_papers_success
+  /media/szilac/SSD_sams/work2/researchAIde_new/backend/app/services/arxiv_service.py:30: DeprecationWarning: The 'Search.results' method is deprecated, use 'Client.results' instead
+    return search.results()
+
+tests/integration/test_papers_api.py::test_get_paper_details_success
+tests/integration/test_papers_api.py::test_get_paper_details_not_found
+tests/integration/test_papers_api.py::test_get_paper_details_not_found
+tests/integration/test_papers_api.py::test_get_paper_details_not_found
+  /media/szilac/SSD_sams/work2/researchAIde_new/backend/app/services/arxiv_service.py:71: DeprecationWarning: The 'Search.results' method is deprecated, use 'Client.results' instead
+    return next(search.results())
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/agents/test_phd_agent.py::test_phd_agent_process_simple_response
+FAILED tests/unit/services/test_collection_manager.py::test_create_research_collection_metadata_mismatch
+FAILED tests/unit/services/test_collection_manager.py::test_validate_collection_schema_placeholder
+FAILED tests/unit/services/test_collection_manager.py::test_migrate_collection_schema_placeholder
+FAILED tests/unit/services/test_ingestion_service.py::test_ingest_document_success
+FAILED tests/unit/services/test_vector_db_client.py::test_delete_collection_success
+FAILED tests/unit/services/test_vector_db_client.py::test_delete_collection_failure_still_exists
+FAILED tests/unit/services/test_vector_db_client.py::test_delete_collection_api_error
+FAILED tests/unit/services/test_vector_db_client.py::test_query_collection_success
+============ 9 failed, 76 passed, 205 warnings in 73.00s (0:01:12) =============

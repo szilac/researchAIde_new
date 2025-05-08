@@ -1,7 +1,6 @@
-\
 from typing import TypedDict, List, Dict, Any, Optional, Annotated
 from langgraph.graph.message import add_messages # Keep this import with GraphState
-from backend.app.models.message_models import AgentMessage # Keep this import with GraphState
+from app.models.message_models import AgentMessage # Keep this import with GraphState
 
 # --- Constants ---
 MAX_ITERATIONS_REFINE = 3
@@ -9,9 +8,9 @@ MAX_RETRIES = 2 # Max retries for error recovery
 
 # --- Graph State Definition ---
 class GraphState(TypedDict):
-    \"\"\"
+    """
     Represents the state of our research orchestration graph.
-    \"\"\"
+    """
     # Core research inputs
     research_query: Optional[str]
     config_parameters: Optional[Dict[str, Any]]

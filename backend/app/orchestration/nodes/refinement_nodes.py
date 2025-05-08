@@ -1,14 +1,15 @@
-\
 from typing import Dict, Any, Optional, List
 import traceback
 
 from ..graph_state import GraphState
-from backend.app.models.message_models import AgentMessage, PerformativeType
-from backend.app.utils.logging_utils import get_logger
+from app.models.message_models import AgentMessage, PerformativeType
+from app.utils.logging_utils import get_logger
+from langgraph.graph.message import add_messages
 
 # Type hints for agents/services
-from backend.app.agents.phd_agent import PhDAgent, IdentifiedGapsOutput, GeneratedDirectionsOutput
-from backend.app.agents.postdoc_agent import PostDocAgent, PostdocEvaluationOutput # Assuming this Pydantic model exists
+from app.agents.phd_agent import PhDAgent, GeneratedDirectionsOutput
+from app.agents.postdoc_agent import PostDocAgent
+from app.models.operation_models import IdentifiedGapsOutput, PostDocEvaluationOutput
 
 logger = get_logger(__name__)
 
@@ -30,7 +31,7 @@ async def identify_research_gaps_node(state: GraphState, phd_agent: PhDAgent) ->
             message_content = {"status": "skipped_no_valid_analysis", "gaps_identified_count": 0}
             return {
                 "identified_gaps_output": message_content,
-                "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_RESULT, content=message_content)]),
+                "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_result", content=message_content)]),
                 "error_message": None, "error_source_node": None, "error_details": None,
             }
         
@@ -54,7 +55,7 @@ async def identify_research_gaps_node(state: GraphState, phd_agent: PhDAgent) ->
             phd_agent.logger.warning("PhDAgent.identify_research_gaps returned None/unexpected format.")
             gaps_output_dict = {"status": "gaps_identification_failed_agent_output_issue", "identified_gaps": [], "summary_of_gaps": "Agent did not return valid gap analysis."}
 
-        message_to_next_node = AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_RESULT, content=gaps_output_dict)
+        message_to_next_node = AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_result", content=gaps_output_dict)
         return {
             "identified_gaps_output": gaps_output_dict,
             "messages": add_messages(state.get("messages", []), [message_to_next_node]),
@@ -67,7 +68,7 @@ async def identify_research_gaps_node(state: GraphState, phd_agent: PhDAgent) ->
             "error_source_node": node_name,
             "error_details": traceback.format_exc(),
             "identified_gaps_output": {"status": "gaps_identification_error", "error_message": str(e)},
-            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.ERROR_REPORT, content={"error": str(e)})])
+            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="error_report", content={"error": str(e)})])
         }
 
 async def generate_research_directions_node(state: GraphState, phd_agent: PhDAgent) -> Dict[str, Any]:
@@ -89,7 +90,7 @@ async def generate_research_directions_node(state: GraphState, phd_agent: PhDAge
             return {
                 "generated_directions_output": message_content,
                 "iteration_count": 0, 
-                "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_RESULT, content=message_content)]),
+                "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_result", content=message_content)]),
                 "error_message": None, "error_source_node": None, "error_details": None,
             }
 
@@ -113,7 +114,7 @@ async def generate_research_directions_node(state: GraphState, phd_agent: PhDAge
             phd_agent.logger.warning("PhDAgent.generate_research_directions returned None/unexpected format.")
             directions_output_dict = {"status": "directions_generation_failed_agent_output_issue", "directions": [], "overall_strategy_justification": "Agent did not return valid directions."}
 
-        message_to_next_node = AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_RESULT, content=directions_output_dict)
+        message_to_next_node = AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_result", content=directions_output_dict)
         
         initial_iteration_count = 0 # Initialize for the refinement loop
         return {
@@ -130,7 +131,7 @@ async def generate_research_directions_node(state: GraphState, phd_agent: PhDAge
             "error_details": traceback.format_exc(),
             "generated_directions_output": {"status": "directions_generation_error", "error_message": str(e)},
             "iteration_count": state.get("iteration_count", 0),
-            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.ERROR_REPORT, content={"error": str(e)})])
+            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="error_report", content={"error": str(e)})])
         }
 
 async def evaluate_research_directions_node(state: GraphState, postdoc_agent: Optional[PostDocAgent], graph_checkpointer: Optional[Any]) -> Dict[str, Any]:
@@ -147,7 +148,7 @@ async def evaluate_research_directions_node(state: GraphState, postdoc_agent: Op
             return {
                 "postdoc_evaluation_output": {"status": "skipped_no_directions"},
                 "iteration_count": iteration_count + 1, 
-                "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_RESULT, content={"status": "skipped_no_directions"})]),
+                "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_result", content={"status": "skipped_no_directions"})]),
                 "error_message": None, "error_source_node": None, "error_details": None,
             }
 
@@ -158,7 +159,7 @@ async def evaluate_research_directions_node(state: GraphState, postdoc_agent: Op
         evaluation_output_dict = {}
         if postdoc_agent and not hitl_evaluation_active:
             logger.info(f"Calling PostDocAgent to evaluate {len(directions_to_evaluate)} directions (Iter: {iteration_count + 1})")
-            postdoc_eval_model: Optional[PostdocEvaluationOutput] = await postdoc_agent.evaluate_research_directions(
+            postdoc_eval_model: Optional[PostDocEvaluationOutput] = await postdoc_agent.evaluate_research_directions(
                 research_directions=directions_to_evaluate,
                 literature_summary=literature_summary,
                 original_query=state.get("research_query", "")
@@ -179,7 +180,7 @@ async def evaluate_research_directions_node(state: GraphState, postdoc_agent: Op
             mock_assessments = [{"title": d.get("title", "Dir"), "score": 0.75, "critique": "Simulated plausible."} for d in directions_to_evaluate]
             evaluation_output_dict = {"assessments": mock_assessments, "summary": "Simulated auto-assessment.", "status": "evaluation_simulated_auto_approval"}
 
-        message_to_next_node = AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_RESULT, content=evaluation_output_dict)
+        message_to_next_node = AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_result", content=evaluation_output_dict)
         return {
             "postdoc_evaluation_output": evaluation_output_dict,
             "iteration_count": iteration_count + 1,
@@ -194,7 +195,7 @@ async def evaluate_research_directions_node(state: GraphState, postdoc_agent: Op
             "error_details": traceback.format_exc(),
             "postdoc_evaluation_output": {"status": "evaluation_error", "error_message": str(e)},
             "iteration_count": state.get("iteration_count", 0) + 1,
-            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.ERROR_REPORT, content={"error": str(e)})])
+            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="error_report", content={"error": str(e)})])
         }
 
 async def refine_directions_based_on_assessment_node(state: GraphState, phd_agent: PhDAgent) -> Dict[str, Any]:
@@ -219,17 +220,17 @@ async def refine_directions_based_on_assessment_node(state: GraphState, phd_agen
             logger.warning("Postdoc evaluation skipped, failed, or pending. Cannot refine. Passing through current directions.")
             return {
                 "refined_directions_output": current_directions_input, 
-                "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_RESULT, content={"status": "refinement_skipped_invalid_evaluation", "details": postdoc_evaluation_output.get("status")})]),
+                "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_result", content={"status": "refinement_skipped_invalid_evaluation", "details": postdoc_evaluation_output.get("status")})]),
                 "error_message": None, "error_source_node": None, "error_details": None,
             }
 
         assessments = postdoc_evaluation_output.get("assessments")
         if not assessments and not current_directions_list:
              logger.warning("No assessments and no current directions. Cannot refine.")
-             return {"refined_directions_output": {"status": "refinement_skipped_no_assessment_or_directions"}, "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_RESULT, content={"status": "refinement_skipped_no_assessment_or_directions"})]), "error_message": None, "error_source_node": None, "error_details": None}
+             return {"refined_directions_output": {"status": "refinement_skipped_no_assessment_or_directions"}, "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_result", content={"status": "refinement_skipped_no_assessment_or_directions"})]), "error_message": None, "error_source_node": None, "error_details": None}
         elif not assessments and current_directions_list:
             logger.warning("No specific assessment details provided. Passing through current directions.")
-            return {"refined_directions_output": current_directions_input, "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_RESULT, content={"status": "refinement_skipped_no_assessment_details"})]), "error_message": None, "error_source_node": None, "error_details": None}
+            return {"refined_directions_output": current_directions_input, "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_result", content={"status": "refinement_skipped_no_assessment_details"})]), "error_message": None, "error_source_node": None, "error_details": None}
 
         logger.info(f"Calling PhDAgent to refine research directions (Iter: {iteration_count}) for topic: '{research_topic}'")
 
@@ -248,7 +249,7 @@ async def refine_directions_based_on_assessment_node(state: GraphState, phd_agen
             phd_agent.logger.warning("PhDAgent.refine_research_directions returned None/unexpected format.")
             refined_output_dict = {"status": "refinement_failed_agent_output_issue", "directions": current_directions_list, "justification": "Agent did not return valid refinement."}
 
-        message_to_next_node = AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.INFORM_RESULT, content=refined_output_dict)
+        message_to_next_node = AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_result", content=refined_output_dict)
         
         return {
             "refined_directions_output": refined_output_dict,
@@ -264,5 +265,5 @@ async def refine_directions_based_on_assessment_node(state: GraphState, phd_agen
             "error_details": traceback.format_exc(),
             "refined_directions_output": {"status": "refinement_error", "error_message": str(e), "directions": state.get("refined_directions_output", {}).get("directions", []) or state.get("generated_directions_output", {}).get("directions", [])},
             "iteration_count": state.get("iteration_count", 1),
-            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative=PerformativeType.ERROR_REPORT, content={"error": str(e)})])
+            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="error_report", content={"error": str(e)})])
         }

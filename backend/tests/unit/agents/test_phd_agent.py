@@ -36,10 +36,10 @@ def prompt_manager():
     try:
         manager = PromptManager(template_dir=str(_PROMPT_DIR / "phd"))
         # Ensure essential templates are loaded
-        assert 'query_formulation' in manager._templates
-        assert 'relevance_assessment' in manager._templates
-        assert 'literature_analyzer' in manager._templates
-        assert 'gap_identification' in manager._templates
+        assert 'phd_query_formulation' in manager._templates
+        assert 'phd_relevance_assessment' in manager._templates
+        assert 'phd_literature_analyzer' in manager._templates
+        assert 'phd_gap_identification' in manager._templates
         return manager
     except Exception as e:
         pytest.fail(f"Failed to initialize PromptManager: {e}")

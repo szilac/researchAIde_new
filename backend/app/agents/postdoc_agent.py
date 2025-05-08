@@ -1,65 +1,31 @@
 import logging
 from dataclasses import dataclass
-from typing import List, Optional, Any, Dict
+from typing import List, Optional, Any
 
-from pydantic import BaseModel, Field as PydanticField
 from pydantic_ai import Agent
 
-# Assuming PromptManager will be used
 from app.services.llm.prompt_manager import PromptManager
-# Assuming CollectionManager will be used for semantic search capabilities
 from app.services.collection_manager import CollectionManager
+from app.models.operation_models import (
+    ResearchDirection,
+    NoveltyAssessmentOutput,
+    FeasibilityAssessmentOutput,
+    OverallAssessment,
+    PostDocEvaluationOutput
+)
 
 logger = logging.getLogger(__name__)
 
 # --- Input Model Placeholder ---
-# This should ideally align with PhDAgent's ResearchDirection output or a shared model.
-class ResearchDirectionInput(BaseModel):
-    direction_id: str
-    title: str
-    description: str
-    rationale: str
-    related_gap_ids: List[str] = PydanticField(default_factory=list)
-    # Add other fields as expected from PhDAgent's output or for assessment context
-    # For example, if PhDAgent provides novelty/feasibility scores, they could be inputs here
-    # or PostDoc could be designed to re-evaluate them from scratch.
-
 
 # --- Dependency Definitions ---
 @dataclass
 class PostDocAgentDependencies:
     prompt_manager: PromptManager
     chromadb_service: Optional[CollectionManager] = None
-    llm_manager: Any = None # Placeholder for future LLM-specific configurations
-    # chromadb_service: Any = None # If direct Chroma access is needed for context
-
+    llm_manager: Any = None
 
 # --- Output Model Definitions ---
-
-class NoveltyAssessmentOutput(BaseModel):
-    direction_id: str = PydanticField(description="The ID of the research direction being assessed.")
-    novelty_score: float = PydanticField(description="Score from 0.0 (not novel) to 10.0 (highly novel)", ge=0.0, le=10.0)
-    novelty_justification: str = PydanticField(description="Explanation for the novelty score, citing evidence or lack thereof from the provided context or general knowledge.")
-    related_work_references: Optional[List[str]] = PydanticField(default=None, description="Key references or pointers to existing work that diminishes or supports novelty.")
-
-class FeasibilityAssessmentOutput(BaseModel):
-    direction_id: str = PydanticField(description="The ID of the research direction being assessed.")
-    feasibility_score: float = PydanticField(description="Score from 0.0 (not feasible) to 10.0 (highly feasible)", ge=0.0, le=10.0)
-    feasibility_justification: str = PydanticField(description="Explanation for the feasibility score, considering methodology, resources, time, ethical considerations, etc.")
-    identified_challenges: List[str] = PydanticField(default_factory=list, description="Specific challenges identified that impact feasibility.")
-    suggested_mitigations: Optional[List[str]] = PydanticField(default=None, description="Potential strategies to overcome identified challenges.")
-
-class OverallAssessment(BaseModel):
-    direction_id: str = PydanticField(description="The ID of the research direction.")
-    novelty_assessment: NoveltyAssessmentOutput
-    feasibility_assessment: FeasibilityAssessmentOutput
-    overall_recommendation_score: float = PydanticField(description="An overall score (0.0-10.0) reflecting the combined promise of the direction, considering novelty, feasibility, potential impact, and alignment with research goals.", ge=0.0, le=10.0)
-    constructive_critique: str = PydanticField(description="A comprehensive critique addressing strengths, weaknesses, and providing specific, actionable suggestions for improvement.")
-    # E.g., "This direction is highly novel (9/10) due to X but faces feasibility challenges (4/10) in Y. To improve, consider Z."
-
-class PostDocEvaluationOutput(BaseModel):
-    evaluated_directions: List[OverallAssessment] = PydanticField(description="A list of comprehensive evaluations for each research direction provided.")
-
 
 # --- PostDoc Agent Definition ---
 
@@ -93,13 +59,13 @@ class PostDocAgent:
             description="Synthesizes novelty and feasibility assessments into an overall critique and recommendation.",
             model=self.llm_model_name,
             deps_type=PostDocAgentDependencies,
-            output_type=OverallAssessment # This agent will produce the final combined assessment for one direction
+            output_type=OverallAssessment
         )
         self.logger.info(f"PostDocAgent initialized with LLM: {self.llm_model_name}. Sub-agents ready.")
 
     async def assess_novelty(
-        self, research_direction: ResearchDirectionInput, literature_context_summary: Optional[str] = None,
-        session_id: Optional[str] = None # Added session_id for semantic search context
+        self, research_direction: ResearchDirection, literature_context_summary: Optional[str] = None,
+        session_id: Optional[str] = None
     ) -> NoveltyAssessmentOutput:
         """Assesses the novelty of a single research direction, optionally using semantic search."""
         self.logger.info(f"Assessing novelty for: {research_direction.title} (ID: {research_direction.direction_id})")
@@ -108,25 +74,7 @@ class PostDocAgent:
         if self.dependencies.chromadb_service and session_id:
             try:
                 query_text = f"{research_direction.title} {research_direction.description} {research_direction.rationale}"
-                # Assuming search_research_collection returns a list of dicts/objects with id, document, metadata, distance/similarity
-                # And that metadata contains title, and document itself can be used as a snippet or part of it.
-                # We might need a specific method in CollectionManager to get formatted snippets + scores.
-                # For now, let's assume a conceptual `search_similar_documents` method.
-                # This method would ideally return something like: [{'id': str, 'title': str, 'similarity_score': float, 'snippet': str}]
-                
-                # Placeholder for actual search call structure - this will need to align with CollectionManager's capabilities
-                # search_results = await self.dependencies.chromadb_service.search_similar_documents(
-                #     query_text=query_text,
-                #     session_id=session_id,
-                #     top_n=3 # Get top 3 similar documents
-                # )
-                # For testing, let's mock this part until CollectionManager method is confirmed/implemented
-                search_results = [] # Mock: no results
-                # Example of mocked results if search was successful:
-                # search_results = [
-                #     {'id': 'doc1', 'title': 'Very Similar Existing Paper A', 'similarity_score': 0.92, 'snippet': 'This paper discusses almost the exact same concept...'},
-                #     {'id': 'doc2', 'title': 'Related Work B', 'similarity_score': 0.85, 'snippet': 'Focuses on a related sub-problem using method Y...'}
-                # ]
+                search_results = []
 
                 if search_results:
                     self.logger.info(f"Found {len(search_results)} semantic matches for novelty assessment.")
@@ -143,14 +91,13 @@ class PostDocAgent:
         template_vars = {
             "direction": research_direction.model_dump(),
             "context": literature_context_summary if literature_context_summary else "No specific textual literature context summary was provided.",
-            "semantic_matches": semantic_matches_for_prompt # Pass the search results to the template
+            "semantic_matches": semantic_matches_for_prompt
         }
 
         try:
             instructions = self.dependencies.prompt_manager.format_prompt(prompt_name, **template_vars)
             self.logger.debug(f"Rendered instructions for {prompt_name}:\n{instructions}")
 
-            # User prompt for pydantic-ai agent can be minimal if instructions are comprehensive
             user_prompt_content = f"Assess the novelty of research direction: {research_direction.title}"
             
             result = await self._novelty_assessor.run(
@@ -158,7 +105,6 @@ class PostDocAgent:
                 instructions=instructions,
                 deps=self.dependencies
             )
-            # Ensure the direction_id in the output matches the input
             if result.output.direction_id != research_direction.direction_id:
                 self.logger.warning(
                     f"Novelty assessment for {research_direction.direction_id} returned with mismatched ID {result.output.direction_id}. Overwriting."
@@ -185,7 +131,7 @@ class PostDocAgent:
             )
 
     async def assess_feasibility(
-        self, research_direction: ResearchDirectionInput
+        self, research_direction: ResearchDirection
     ) -> FeasibilityAssessmentOutput:
         """Assesses the feasibility of a single research direction."""
         self.logger.info(f"Assessing feasibility for: {research_direction.title} (ID: {research_direction.direction_id})")
@@ -233,7 +179,7 @@ class PostDocAgent:
 
     async def synthesize_critique(
         self,
-        research_direction: ResearchDirectionInput,
+        research_direction: ResearchDirection,
         novelty_assessment: NoveltyAssessmentOutput,
         feasibility_assessment: FeasibilityAssessmentOutput
     ) -> OverallAssessment:
@@ -259,8 +205,6 @@ class PostDocAgent:
                 deps=self.dependencies
             )
 
-            # Ensure the main direction_id and nested assessments are consistent
-            # The LLM is asked to copy novelty/feasibility, but we verify.
             output_assessment = result.output
             if output_assessment.direction_id != research_direction.direction_id:
                 self.logger.warning(
@@ -268,7 +212,6 @@ class PostDocAgent:
                 )
                 output_assessment.direction_id = research_direction.direction_id
             
-            # Ensure nested assessments are the ones we provided as input, as LLM might regenerate them
             output_assessment.novelty_assessment = novelty_assessment
             output_assessment.feasibility_assessment = feasibility_assessment
             
@@ -294,8 +237,8 @@ class PostDocAgent:
             )
 
     async def evaluate_direction(
-        self, research_direction: ResearchDirectionInput, literature_context_summary: Optional[str] = None,
-        session_id: Optional[str] = None # Propagate session_id
+        self, research_direction: ResearchDirection, literature_context_summary: Optional[str] = None,
+        session_id: Optional[str] = None
     ) -> OverallAssessment:
         """
         Performs a full evaluation (novelty, feasibility, critique) for a single research direction.
@@ -316,7 +259,7 @@ class PostDocAgent:
 
     async def evaluate_directions_batch(
         self,
-        research_directions: List[ResearchDirectionInput],
+        research_directions: List[ResearchDirection],
         literature_context_summary: Optional[str] = None
     ) -> PostDocEvaluationOutput:
         """
@@ -355,11 +298,14 @@ async def main_postdoc_test():
         logger.error(f"Failed to initialize PromptManager for PostDoc test: {e} at path {prompts_base_dir}", exc_info=True)
         return
 
+    # Import ResearchDirection for the sample data
+    from app.models.operation_models import ResearchDirection
+
     deps = PostDocAgentDependencies(prompt_manager=actual_prompt_manager)
     # Consider using a more cost-effective model for testing if available, e.g., gemini-1.5-flash-latest or similar
     postdoc_agent = PostDocAgent(dependencies=deps, llm_model_name="gemini-1.5-flash-latest") 
 
-    sample_direction = ResearchDirectionInput(
+    sample_direction = ResearchDirection(
         direction_id="test_dir_001",
         title="Quantum Entanglement for Faster-Than-Light Communication",
         description="This research proposes to leverage principles of quantum entanglement to achieve instantaneous communication across vast interstellar distances, bypassing the limitations of the speed of light.",
