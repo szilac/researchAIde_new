@@ -41,15 +41,15 @@ from .nodes.utility_nodes import (
 )
 
 # Agent and Service Imports (These will remain as they are specific to the orchestrator's dependencies)
-from backend.app.agents.phd_agent import PhDAgent
-from backend.app.agents.postdoc_agent import PostDocAgent
-from backend.app.services.arxiv_service import ArxivService
-from backend.app.services.pdf_processor import PyPDF2Processor # Import the class
-from backend.app.services.ingestion_service import IngestionService
-from backend.app.services.vector_db_client import VectorDBClient
+from app.agents.phd_agent import PhDAgent
+from app.agents.postdoc_agent import PostDocAgent
+from app.services.arxiv_service import ArxivService
+from app.services.pdf_processor import PyPDF2Processor # Import the class
+from app.services.ingestion_service import IngestionService
+from app.services.vector_db_client import VectorDBClient
 
 # Import Pydantic models from the new location
-from backend.app.models.operation_models import (
+from app.models.operation_models import (
     FormulatedQueriesOutput,
     PaperRelevanceAssessment, # Corrected name for AssessedPaperRelevance
     LiteratureAnalysisOutput,
@@ -93,7 +93,7 @@ class ResearchOrchestrator:
         workflow.add_node("execute_arxiv_search", functools.partial(execute_arxiv_search_node, arxiv_service=self.arxiv_service))
         workflow.add_node("score_paper_relevance", functools.partial(score_paper_relevance_node, phd_agent=self.phd_agent))
         workflow.add_node("create_initial_shortlist", create_initial_shortlist_node)
-        workflow.add_node("request_shortlist_review", request_shortlist_review_node)
+        workflow.add_node("request_shortlist_review", functools.partial(request_shortlist_review_node, graph_checkpointer=self.checkpointer))
         workflow.add_node("processing_papers", functools.partial(process_and_ingest_papers_node, pdf_processor_class=PyPDF2Processor, ingestion_service=self.ingestion_service))
         workflow.add_node("literature_analysis", functools.partial(perform_literature_analysis_node, phd_agent=self.phd_agent, vector_db_client=self.vector_db_client))
         workflow.add_node("identify_research_gaps", functools.partial(identify_research_gaps_node, phd_agent=self.phd_agent))
@@ -112,7 +112,10 @@ class ResearchOrchestrator:
         workflow.add_edge("execute_arxiv_search", "score_paper_relevance")
         workflow.add_edge("score_paper_relevance", "create_initial_shortlist")
         workflow.add_edge("create_initial_shortlist", "request_shortlist_review")
+        
+        # REVERTED to direct edge - interrupt handled by Send return from node
         workflow.add_edge("request_shortlist_review", "processing_papers")
+        
         workflow.add_edge("processing_papers", "literature_analysis")
         
         # Conditional edge after literature analysis

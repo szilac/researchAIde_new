@@ -2,7 +2,7 @@ from typing import Dict, Any, Optional, List
 import traceback
 
 from ..graph_state import GraphState, MAX_RETRIES # MAX_RETRIES is used in global_error_handler
-from backend.app.models.message_models import AgentMessage, PerformativeType
+from app.models.message_models import AgentMessage, PerformativeType
 from app.utils.logging_utils import get_logger
 from langgraph.graph.message import add_messages
 from langgraph.graph import END # Added import for END
@@ -45,7 +45,7 @@ async def prepare_final_output_node(state: GraphState) -> Dict[str, Any]:
         }
 
         summary_message_content = {"status": "Research workflow completed successfully.", "session_id": session_id, "final_directions_count": len(final_directions_output.get("directions", [])) if final_directions_output else 0, "total_iterations": iteration_count}
-        final_agent_message = AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_completion", content=summary_message_content)
+        final_agent_message = AgentMessage(conversation_id=str(session_id), sender_agent_id=node_name, performative="inform_result", content=summary_message_content)
         final_event = {"event_type": "FinalOutputReady", "details": summary_message_content}
         current_events = state.get("last_events", [])
         updated_events = current_events + [final_event]
@@ -66,7 +66,7 @@ async def prepare_final_output_node(state: GraphState) -> Dict[str, Any]:
             "error_source_node": node_name,
             "error_details": traceback.format_exc(),
             "user_facing_report_data": {"status": "error_in_final_reporting", "error_message": str(e)},
-            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="error_report", content={"error": str(e)})]),
+            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=str(session_id), sender_agent_id=node_name, performative="error_report", content={"error": str(e)})]),
             "workflow_outcome": "error_in_finalization"
         }
 
@@ -98,7 +98,7 @@ async def global_error_handler_node(state: GraphState) -> Dict[str, Any]:
         state_update = {} # No state changes needed for termination via END
 
     error_report_message = AgentMessage(
-        conversation_id=session_id,
+        conversation_id=str(session_id),
         sender_agent_id=node_name,
         performative="error_report",
         content={ # Simplified content for clarity
@@ -165,7 +165,7 @@ async def resolve_conflict_node(state: GraphState) -> Dict[str, Any]:
             "resolved_output": resolved_data,
             "last_events": [resolution_event],
             "error_message": None, "error_source_node": None, "error_details": None,
-            "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_result", content={"status": "conflict_resolved", "resolution_strategy": "Simulated:PickFirstOrFallback"})])
+            "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=str(session_id), sender_agent_id=node_name, performative="inform_result", content={"status": "conflict_resolved", "resolution_strategy": "Simulated:PickFirstOrFallback"})])
         }
     except Exception as e:
         logger.error(f"!!! ERROR in {node_name} during conflict resolution: {e} !!!", exc_info=True)
@@ -174,5 +174,5 @@ async def resolve_conflict_node(state: GraphState) -> Dict[str, Any]:
             "error_source_node": node_name,
             "error_details": traceback.format_exc(),
             "conflict_detected": True, # Keep flag set
-            "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="error_report", content={"error": f"Failed to resolve conflict: {e}"})])
+            "messages": add_messages(state.get("messages",[]), [AgentMessage(conversation_id=str(session_id), sender_agent_id=node_name, performative="error_report", content={"error": f"Failed to resolve conflict: {e}"})])
         }

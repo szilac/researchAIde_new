@@ -5,12 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 # Load environment variables from .env file before anything else
 load_dotenv()
 
-# Import API routers
-# from app.api.v1.endpoints import items, users, login, papers # Assuming papers might exist
-from app.api.v1.endpoints import papers 
-from app.api.v1.endpoints import pdf as pdf_router # Added pdf router
+# Import the main API router for v1 endpoints
+from app.api.v1.api import api_router as api_v1_router # Updated import
 from app.config import settings
-# from .api.v1 import other_router # Example for future routers
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -33,13 +30,8 @@ if settings.BACKEND_CORS_ORIGINS:
 async def read_root():
     return {"message": "Welcome to the ResearchAIde API"}
 
-# Include API routers
-# app.include_router(login.router, tags=["login"])
-# app.include_router(users.router, prefix=settings.API_V1_STR, tags=["users"])
-# app.include_router(items.router, prefix=settings.API_V1_STR, tags=["items"])
-app.include_router(papers.router, prefix=settings.API_V1_STR, tags=["papers"]) # Assuming papers router
-app.include_router(pdf_router.router, prefix=f"{settings.API_V1_STR}/pdf", tags=["PDF Processing"]) # Added PDF router
-# app.include_router(other_router.router, prefix="/api/v1/other", tags=["Other"]) # Example
+# Include the main v1 API router
+app.include_router(api_v1_router, prefix=settings.API_V1_STR) # Updated to include the consolidated router
 
 # Add other app configurations, middleware, event handlers etc. below
 

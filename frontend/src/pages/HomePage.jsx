@@ -7,7 +7,7 @@ function HomePage() {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <div>
+    <div className="px-4 py-8">
       <h1>Home Page</h1>
       <p>Welcome to the ResearchAIde application!</p>
       

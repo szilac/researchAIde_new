@@ -1,4 +1,3 @@
-\
 from typing import Dict, Any, Optional, List
 import uuid
 import traceback
@@ -35,7 +34,7 @@ async def initialize_workflow_node(state: GraphState) -> Dict[str, Any]:
         )
 
         system_message = AgentMessage(
-            conversation_id=session_id,
+            conversation_id=str(session_id),
             sender_agent_id="SystemInitializer",
             performative="inform_state",
             content={"status": "Workflow initialized", "query": research_query, "session_id": session_id}
@@ -72,6 +71,7 @@ async def formulate_search_queries_node(state: GraphState, phd_agent: PhDAgent) 
         research_topic = state.get("research_query")
         config_params = state.get("config_parameters", {})
         general_area = config_params.get("general_area_for_query_formulation")
+        formatted_history = [] # Assuming history formatting happens elsewhere or is passed in state
 
         if not research_topic:
             raise ValueError("Research query/topic is missing in state for query formulation.")
@@ -80,34 +80,38 @@ async def formulate_search_queries_node(state: GraphState, phd_agent: PhDAgent) 
 
         print(f"  Calling PhDAgent to formulate search queries for topic: '{research_topic}' (General Area: {general_area})")
         
-        formulated_output: Optional[FormulatedQueriesOutput] = await phd_agent.formulate_search_queries(
+        # Assuming agent returns a dictionary now based on mock test update
+        formulated_output_dict: Optional[Dict] = await phd_agent.formulate_search_queries(
             research_topic=research_topic,
-            general_area=general_area
+            general_area=general_area,
+            history=formatted_history
         )
         
         constructed_queries_list = []
-        if formulated_output and hasattr(formulated_output, 'queries') and isinstance(formulated_output.queries, list):
-            for query_model in formulated_output.queries:
-                if hasattr(query_model, 'model_dump'):
-                    constructed_queries_list.append(query_model.model_dump(exclude_none=True))
-                elif isinstance(query_model, dict):
-                    constructed_queries_list.append(query_model)
+        # Safely access keys from the dictionary
+        if formulated_output_dict and isinstance(formulated_output_dict.get('queries'), list):
+            agent_original_topic = formulated_output_dict.get("original_topic") # Safe access
+            for query_info in formulated_output_dict['queries']:
+                if isinstance(query_info, dict):
+                    constructed_queries_list.append(query_info)
                 else:
-                    phd_agent.logger.warning(f"Unexpected query model type: {type(query_model)}")
+                    phd_agent.logger.warning(f"Unexpected query info type: {type(query_info)}")
         else:
-            phd_agent.logger.warning(f"PhDAgent output format unexpected/empty: {formulated_output}")
-            if not formulated_output:
+            phd_agent.logger.warning(f"PhDAgent output format unexpected/empty: {formulated_output_dict}")
+            agent_original_topic = None # Ensure it's defined even if output is bad
+            if not formulated_output_dict:
                  phd_agent.logger.error("PhDAgent returned None for query formulation.")
 
         if not constructed_queries_list:
              phd_agent.logger.warning("No search queries were formulated by PhDAgent.")
 
         status_content = {"status": "query_formulation_complete", "query_count": len(constructed_queries_list)}
-        if formulated_output and formulated_output.original_topic != research_topic:
-            status_content["original_topic_in_agent_output"] = formulated_output.original_topic
+        # Safely check the retrieved original topic
+        if agent_original_topic and agent_original_topic != research_topic:
+            status_content["original_topic_in_agent_output"] = agent_original_topic
 
         message_to_next_node = AgentMessage(
-            conversation_id=session_id,
+            conversation_id=str(session_id), # Cast to string
             sender_agent_id=node_name,
             performative="inform_result",
             content=status_content
@@ -129,7 +133,7 @@ async def formulate_search_queries_node(state: GraphState, phd_agent: PhDAgent) 
             "error_source_node": node_name,
             "error_details": traceback.format_exc(),
             "constructed_queries": [], 
-            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="error_report", content={"error": str(e)})])
+            "messages": add_messages(state.get("messages", []), [AgentMessage(conversation_id=str(session_id), sender_agent_id=node_name, performative="error_report", content={"error": str(e)})])
         }
 
 async def execute_arxiv_search_node(state: GraphState, arxiv_service: ArxivService) -> Dict[str, Any]:
@@ -147,7 +151,7 @@ async def execute_arxiv_search_node(state: GraphState, arxiv_service: ArxivServi
             return {
                 "raw_arxiv_results": [], 
                 "search_execution_status": "skipped_no_valid_queries",
-                "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="inform_status", content={"status": "ArXiv search skipped, no valid queries"})],
+                "messages": [AgentMessage(conversation_id=str(session_id), sender_agent_id=node_name, performative="status_update", content={"status": "ArXiv search skipped, no valid queries"})],
                 "error_message": None, "error_source_node": None, "error_details": None,
             }
 
@@ -187,7 +191,7 @@ async def execute_arxiv_search_node(state: GraphState, arxiv_service: ArxivServi
             search_status = "success_found_results"
         
         search_done_message = AgentMessage(
-            conversation_id=session_id,
+            conversation_id=str(session_id),
             sender_agent_id=node_name,
             performative="inform_result",
             content={"status": search_status, "results_count": len(all_results)}
@@ -206,5 +210,5 @@ async def execute_arxiv_search_node(state: GraphState, arxiv_service: ArxivServi
             "error_details": traceback.format_exc(),
             "raw_arxiv_results": [],
             "search_execution_status": "error_in_execution",
-            "messages": [AgentMessage(conversation_id=session_id, sender_agent_id=node_name, performative="error_report", content={"error": str(e)})]
+            "messages": [AgentMessage(conversation_id=str(session_id), sender_agent_id=node_name, performative="error_report", content={"error": str(e)})]
         }
