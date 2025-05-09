@@ -27,8 +27,6 @@ class LLMManager:
         # "openai": OpenAIProvider,      # Example for future providers
     }
 
-    # Cache instances to avoid re-initialization if config is the same?
-    # _instances: Dict[tuple, LLMProvider] = {}
 
     @classmethod
     def get_provider(cls, config: LLMConfig, provider_name: Optional[str] = "google") -> LLMProvider:

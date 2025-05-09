@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     class Config:
         case_sensitive = True
-        # env_file = ".env" # Uncomment to load from .env file by default
-        # env_file_encoding = 'utf-8'
+        env_file = ".env" # UNCOMMENTED
+        env_file_encoding = 'utf-8'
 
 settings = Settings() 

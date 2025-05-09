@@ -13,6 +13,7 @@ class GraphState(TypedDict):
     """
     # Core research inputs
     research_query: Optional[str]
+    general_area: Optional[str]
     config_parameters: Optional[Dict[str, Any]]
     session_id: Optional[str]
 

@@ -49,7 +49,7 @@ class PhDAgent:
     # Constants
     MAX_CONTENT_LENGTH_FOR_ANALYSIS = 30000 # Limit context window for analysis agent
 
-    def __init__(self, dependencies: PhDAgentDependencies, llm_model_name: str = "gemini-pro"):
+    def __init__(self, dependencies: PhDAgentDependencies, llm_model_name: str = "gemini-2.0-flash-lite"):
         self.dependencies = dependencies
         self.llm_model_name = llm_model_name
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -103,11 +103,12 @@ class PhDAgent:
         self.logger.info(f"PhDAgent initialized. Sub-agents will load prompts at runtime.")
 
     async def formulate_search_queries(self, research_topic: str, general_area: Optional[str] = None) -> FormulatedQueriesOutput:
-        self.logger.info(f"Formulating search queries for topic: {research_topic}")
+        self.logger.info(f"Formulating search a query for topic: {research_topic}")
         try:
             template = self.dependencies.prompt_manager.get_template('phd_query_formulation')
             # Ensure query_formulation.j2 uses research_topic and general_area for full instructions.
             rendered_instructions = template.render(research_topic=research_topic, general_area=general_area or "")
+            self.logger.info(f"Rendered instructions for query_formulation:\n{rendered_instructions}")
         except Exception as e:
             self.logger.error(f"Failed to load/render query_formulation prompt: {e}")
             raise
@@ -131,10 +132,13 @@ class PhDAgent:
             if len(llm_result.output.queries) > 1:
                 self.logger.warning(f"LLM generated {len(llm_result.output.queries)} queries, but only the first one will be used as per agent design.")
         
+        self.logger.info(f"Formulated queries output: {final_queries}")
+        
         return FormulatedQueriesOutput(
             queries=final_queries,
             original_topic=research_topic # or llm_result.output.original_topic if it exists and is preferred
         )
+        
 
     async def assess_paper_relevance(
         self, paper_id: str, title: str, abstract: str, research_topic: str

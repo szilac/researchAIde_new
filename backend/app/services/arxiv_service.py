@@ -20,8 +20,8 @@ retry_strategy = retry(
 
 class ArxivService:
     def __init__(self):
-        # Initialization, if any
-        pass
+        # Initialization, the arxiv client
+        self.client = arxiv.Client()
 
     @retry_strategy
     def _get_search_results(self, search: arxiv.Search) -> Iterator[arxiv.Result]:
@@ -31,17 +31,19 @@ class ArxivService:
 
     def search_papers(self, query: str, max_results: int) -> List[Dict[str, Any]]:
         """Searches arXiv for papers matching the query with retry logic."""
+        # Prefix query to search in abstract, and use Relevance for sorting
         search = arxiv.Search(
-            query=query,
+            query=f"abs:{query}", # Modified query
             max_results=max_results,
-            sort_by=arxiv.SortCriterion.SubmittedDate
+            sort_by=arxiv.SortCriterion.Relevance # Changed sort criterion
         )
 
-        results = []
+        processed_results = [] # Renamed to avoid confusion with arxiv.Result
         try:
+            # The self.client.results(search) call was removed as _get_search_results handles fetching.
             result_iterator = self._get_search_results(search)
             for result in result_iterator:
-                results.append({
+                processed_results.append({
                     "id": result.entry_id.split('/')[-1],
                     "title": result.title,
                     "authors": [author.name for author in result.authors],
@@ -61,7 +63,7 @@ class ArxivService:
             logger.error(f"An unexpected error occurred during paper search for query '{query}': {e}")
             return []
 
-        return results
+        return processed_results
 
     @retry_strategy
     def _get_single_result(self, search: arxiv.Search) -> arxiv.Result | None:

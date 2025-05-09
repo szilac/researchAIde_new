@@ -6,7 +6,7 @@ import Button from '../components/form/Button';
 import LLMSelector from '../components/form/LLMSelector';
 import InputField from '../components/form/InputField';
 import TextareaField from '../components/form/TextareaField';
-import { SessionService } from '../services/SessionService';
+import { startWorkflow } from '../services/apiClient';
 import usePersistentState from '../hooks/usePersistentState';
 
 const TOTAL_STEPS = 2;
@@ -81,26 +81,49 @@ function ResearchSetupPage() {
   };
 
   const handleFinalSubmit = async () => {
-    if (!validateStep(currentStep)) return; // Use validateStep for final step
+    if (!validateStep(currentStep)) return;
 
     setIsSubmitting(true);
     setSubmitError(null);
-    setErrors({}); // Clear field errors before submit
-    console.log('Submitting Form Data:', formData);
+    setErrors({});
+    console.log('Starting workflow with data:', formData);
+
+    // Construct initial prompt (can be refined)
+    const initialPrompt = formData.researchContext 
+      ? `Research Topic: ${formData.researchTopic}\n\nAdditional Context: ${formData.researchContext}` 
+      : `Research Topic: ${formData.researchTopic}`;
 
     try {
-      const createdSession = await SessionService.createSession(formData);
-      console.log('API call successful:', createdSession);
-      alert(`Session created successfully! (ID: ${createdSession?.sessionId || 'N/A'})`);
+      // Call the new workflow service function
+      const response = await startWorkflow(
+        formData.researchTopic, // researchQuery
+        initialPrompt,          // initialPrompt (optional)
+        null,                   // userId (optional, set if available)
+        null,                   // sessionId (let backend generate)
+        {
+          hitl_shortlist_review_active: true, // existing param
+          general_area_for_query_formulation: formData.researchArea || null // Add researchArea here
+        } 
+      );
       
-      // Clear persistent state on successful submission
-      localStorage.removeItem(STEP_STORAGE_KEY);
-      localStorage.removeItem(DATA_STORAGE_KEY);
+      console.log('Workflow started:', response);
+      const workflowId = response?.workflow_id;
 
-      navigate('/');
+      if (workflowId) {
+        alert(`Workflow started successfully! ID: ${workflowId}`);
+        // Clear persistent state on successful submission
+        localStorage.removeItem(STEP_STORAGE_KEY);
+        localStorage.removeItem(DATA_STORAGE_KEY);
+        
+        // Navigate to a workflow monitoring/results page (to be created)
+        navigate(`/workflow/${workflowId}`); 
+      } else {
+        throw new Error("Failed to get workflow ID from the backend.");
+      }
+
     } catch (error) {
-      console.error('API call failed:', error);
-      setSubmitError(error.message || 'An unexpected error occurred.');
+      console.error('Failed to start workflow:', error);
+      setSubmitError(error.message || 'An unexpected error occurred while starting the workflow.');
     } finally {
       setIsSubmitting(false);
     }
@@ -186,7 +209,7 @@ function ResearchSetupPage() {
             variant="primary" 
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Starting Session...' : 'Start Session'}
+            {isSubmitting ? 'Starting Workflow...' : 'Start Workflow'}
           </Button>
         )}
       </div>

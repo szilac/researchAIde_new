@@ -17,6 +17,7 @@ router = APIRouter()
 
 class WorkflowStartRequest(BaseModel):
     research_query: str = Field(..., description="The initial research query or topic.")
+    general_area: Optional[str] = Field(None, description="Optional general research area.")
     initial_phd_prompt: Optional[str] = Field(None, description="Optional specific initial prompt for the PhD Agent.")
     user_id: Optional[str] = Field(None, description="Optional user identifier for the session.")
     session_id: Optional[UUID] = Field(default_factory=uuid4, description="Optional session ID; one will be generated if not provided.")
@@ -160,56 +161,58 @@ async def start_workflow(
     orchestrator: ResearchOrchestrator = Depends(get_research_orchestrator)
 ):
     """
-    Initiates a new research orchestrator workflow.
-    The workflow runs in the background.
+    Initiates a new research workflow asynchronously.
     """
-    workflow_id = request.session_id # Use provided or generated UUID
+    workflow_id = request.session_id or uuid4() # Use provided or generate UUID
+    logger.info(f"Starting workflow {workflow_id} for query: '{request.research_query}' and general area: '{request.general_area}'")
 
-    logger.info(f"Starting workflow {workflow_id} for query: '{request.research_query}'")
+    # Check if dependent services (like agents) were initialized properly
+    if orchestrator.phd_agent is None:
+        logger.error(f"Cannot start workflow {workflow_id}: PhD Agent service is unavailable (failed initialization).")
+        raise HTTPException(status_code=503, detail="PhD Agent service unavailable.")
+    
+    # Corrected check: Access the LLM provider instance via agent.dependencies.llm_manager
+    if orchestrator.phd_agent.dependencies.llm_manager is None:
+         logger.warning(f"Starting workflow {workflow_id}, but PhD Agent has no configured LLM provider via dependencies.")
+         # Consider raising 503 if LLM is absolutely required for any workflow start
 
-    if orchestrator.phd_agent.llm_provider is None:
-         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="PhDAgent LLM provider not initialized. Cannot start workflow."
-        )
-
+    # Construct initial state for the LangGraph graph
     initial_state: GraphState = {
         "research_query": request.research_query,
+        "general_area": request.general_area,
         "initial_phd_prompt": request.initial_phd_prompt,
-        "session_id": workflow_id,
+        "session_id": workflow_id, # Pass the UUID object
         "user_id": request.user_id,
-        "config_parameters": request.config_parameters or {},
+        "config_parameters": request.config_parameters or {}, 
         # Initialize other necessary fields from GraphState with defaults if needed
         "messages": [],
         "last_events": [],
-        "iteration_count": 0,
-        # Ensure defaults for fields accessed later if they might not be set by first node
-        "error_message": None, 
+        "raw_arxiv_results": None,
+        "constructed_queries": None,
+        "search_execution_status": None,
+        "scored_paper_results": None,
+        "initial_paper_shortlist": None,
+        "is_waiting_for_shortlist_review": False,
+        "reviewed_paper_shortlist": None,
+        "literature_analysis_results": None,
+        "identified_gaps": None,
+        "generated_directions": None,
+        "final_report": None,
+        "error_message": None,
         "error_source_node": None,
         "error_details": None,
-        "workflow_outcome": None,
-        # ... add other essential fields with defaults if necessary ...
     }
 
-    # The configuration for the graph run, associating it with the workflow_id (thread_id for checkpointer)
-    config = {"configurable": {"thread_id": str(workflow_id)}}
+    config = {"configurable": {"thread_id": str(workflow_id)}} 
 
-    try:
-        # Ensure the graph is compiled and checkpointer is set
-        if orchestrator.graph is None or orchestrator.checkpointer is None:
-            logger.error("Orchestrator graph or checkpointer not initialized.")
-            raise HTTPException(status_code=500, detail="Orchestrator not properly initialized.")
+    # Corrected: Call graph.ainvoke for background execution
+    background_tasks.add_task(orchestrator.graph.ainvoke, initial_state, config)
 
-        # Add the ainvoke call to background tasks
-        # Pass a copy of initial_state to avoid issues if it's modified elsewhere
-        background_tasks.add_task(orchestrator.graph.ainvoke, dict(initial_state), config)
-        
-        logger.info(f"Workflow {workflow_id} accepted and enqueued for background execution.")
-        return WorkflowInitiateResponse(workflow_id=workflow_id)
-
-    except Exception as e:
-        logger.error(f"Failed to initiate workflow {workflow_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Error initiating workflow: {str(e)}")
+    return WorkflowInitiateResponse(
+        workflow_id=workflow_id,
+        status="initiated",
+        message="Workflow started successfully in the background."
+    )
 
 
 @router.get("/workflows/{workflow_id}", response_model=WorkflowStatusResponse)

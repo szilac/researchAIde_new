@@ -5,6 +5,7 @@ import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
 import ResearchSetupPage from './pages/ResearchSetupPage';
+import WorkflowDisplayPage from './pages/WorkflowDisplayPage';
 import ShortlistTestPage from './pages/ShortlistTestPage';
 import ResearchReportDisplayPage from './pages/ResearchReportDisplayPage';
 import AssessmentsPage from './pages/AssessmentsPage';
@@ -78,6 +79,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/setup" element={<ResearchSetupPage />} />
+          <Route path="/workflow/:workflowId" element={<WorkflowDisplayPage />} />
           <Route path="/shortlist-test" element={<ShortlistTestPage />} />
           <Route path="/exploration" element={<ResearchInterfaceLayout />}>
             <Route index element={<Navigate to="report" replace />} />

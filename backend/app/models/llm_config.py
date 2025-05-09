@@ -6,6 +6,13 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from enum import Enum  # Keep Enum import for placeholder definitions
 
+# LLMProviderType Definition
+class LLMProviderType(str, Enum):
+    GOOGLE = "google"
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    # Add other providers as needed
+
 # Attempt to import safety enums, handle gracefully if library not installed yet
 try:
     from google.generativeai.types import HarmCategory, HarmBlockThreshold
@@ -47,6 +54,9 @@ class SafetySetting(BaseModel):
 class LLMConfig(BaseModel):
     """
     Configuration for the LLM provider, specifically tailored for Google Gemini.
+    NOTE: This model is currently Google Gemini specific. 
+    If other providers are added with different config structures,
+    consider a more generic base LLMConfig and provider-specific sub-models.
     """
 
     api_key: Optional[str] = Field(
@@ -54,7 +64,7 @@ class LLMConfig(BaseModel):
         description="Google API Key. If None, the provider will attempt to load it from the GOOGLE_API_KEY environment variable.",
     )
     model_name: str = Field(
-        ...,
+        default="gemini-1.5-flash",
         description="Name of the specific Gemini model to use (e.g., 'gemini-1.5-pro-002', 'gemini-1.5-flash-001').",
     )
     temperature: Optional[float] = Field(
